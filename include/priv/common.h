@@ -22,13 +22,12 @@
 
 #include <stdint.h>
 
+#include "dbrew.h"
 #include "buffers.h"
 #include "instr.h"
 
 typedef struct _CBB CBB;
-typedef struct _DBB DBB;
 typedef struct _FunctionConfig FunctionConfig;
-typedef struct _Rewriter Rewriter;
 
 // a decoded basic block
 struct _DBB {
@@ -91,7 +90,6 @@ typedef enum _CaptureState {
 // Rewriter Configuration
 //
 
-typedef struct _FunctionConfig FunctionConfig;
 struct _FunctionConfig
 {
     uint64_t func;
@@ -113,6 +111,10 @@ typedef struct _CaptureConfig
     // linked list of configurations per function
     FunctionConfig* function_configs;
 
+    /**
+     * \brief The backend function which is responsible for code generation
+     **/
+    RewriterBackendFunc backend;
 } CaptureConfig;
 
 
@@ -170,7 +172,6 @@ struct _EmuState {
     int depth;
 
 };
-
 
 struct _Rewriter {
 

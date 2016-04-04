@@ -175,6 +175,116 @@ void optPass(Rewriter* r, CBB* cbb)
 }
 
 
+uint64_t
+dbrew_default_backend(Rewriter* c)
+{
+    CBB *cbb;
+    int i;
+
+    // Pass 3: generating code for BBs without linking them
+
+    assert(c->capStackTop == -1);
+    // start with first CBB created
+    pushCaptureBB(c, c->capBB);
+    while(c->capStackTop >= 0) {
+        cbb = c->capStack[c->capStackTop];
+        c->capStackTop--;
+        if (cbb->size >= 0) continue;
+
+        assert(c->genOrderCount < GENORDER_MAX);
+        c->genOrder[c->genOrderCount++] = cbb;
+        generate(c, cbb);
+
+        if (instrIsJcc(cbb->endType)) {
+            // FIXME: order according to branch preference
+            pushCaptureBB(c, cbb->nextBranch);
+            pushCaptureBB(c, cbb->nextFallThrough);
+        }
+    }
+
+    // Pass 4: determine trailing bytes needed for each BB
+
+    c->genOrder[c->genOrderCount] = 0;
+    for(i=0; i < c->genOrderCount; i++) {
+        uint8_t* buf;
+        int diff;
+
+        cbb = c->genOrder[i];
+        buf = useCodeStorage(c->cs, cbb->size);
+        cbb->addr2 = (uint64_t) buf;
+        if (cbb->size > 0) {
+            assert(cbb->count>0);
+            memcpy(buf, (char*)cbb->addr1, cbb->size);
+        }
+        if (!instrIsJcc(cbb->endType)) continue;
+
+        diff = cbb->nextBranch->addr1 - (cbb->addr1 + cbb->size);
+        if ((diff > -120) && (diff < 120))
+            cbb->genJcc8 = True;
+        useCodeStorage(c->cs, cbb->genJcc8 ? 2 : 6);
+        if (cbb->nextFallThrough != c->genOrder[i+1]) {
+            cbb->genJump = True;
+            useCodeStorage(c->cs, 5);
+        }
+    }
+
+    // Pass 5: fill trailing bytes with jump instructions
+
+    for(i=0; i < c->genOrderCount; i++) {
+        uint8_t* buf;
+        uint64_t buf_addr;
+        int diff;
+
+        cbb = c->genOrder[i];
+        if (!instrIsJcc(cbb->endType)) continue;
+
+        buf = (uint8_t*) (cbb->addr2 + cbb->size);
+        buf_addr = (uint64_t) buf;
+        if (cbb->genJcc8) {
+            diff = cbb->nextBranch->addr2 - (buf_addr + 2);
+            assert((diff > -128) && (diff < 127));
+
+            switch(cbb->endType) {
+            case IT_JE:  buf[0] = 0x74; break;
+            case IT_JNE: buf[0] = 0x75; break;
+            case IT_JP:  buf[0] = 0x7A; break;
+            case IT_JL:  buf[0] = 0x7C; break;
+            case IT_JGE: buf[0] = 0x7D; break;
+            case IT_JLE: buf[0] = 0x7E; break;
+            case IT_JG:  buf[0] = 0x7F; break;
+            default: assert(0);
+            }
+            buf[1] = (int8_t) diff;
+            buf += 2;
+        }
+        else {
+            diff = cbb->nextBranch->addr2 - (buf_addr + 6);
+            buf[0] = 0x0F;
+            switch(cbb->endType) {
+            case IT_JE:  buf[1] = 0x84; break;
+            case IT_JNE: buf[1] = 0x85; break;
+            case IT_JP:  buf[1] = 0x8A; break;
+            case IT_JL:  buf[1] = 0x8C; break;
+            case IT_JGE: buf[1] = 0x8D; break;
+            case IT_JLE: buf[1] = 0x8E; break;
+            case IT_JG:  buf[1] = 0x8F; break;
+            default: assert(0);
+            }
+            *(int32_t*)(buf+2) = diff;
+            buf += 6;
+        }
+        if (cbb->genJump) {
+            buf_addr = (uint64_t) buf;
+            diff = cbb->nextFallThrough->addr2 - (buf_addr + 5);
+            buf[0] = 0xE9;
+            *(int32_t*)(buf+1) = diff;
+            buf += 5;
+        }
+    }
+
+    return c->es->reg[Reg_AX];
+}
+
 //----------------------------------------------------------
 // Rewrite engine
 
@@ -191,6 +301,8 @@ uint64_t vEmulateAndCapture(Rewriter* c, va_list args)
     CBB *cbb;
     Instr* instr;
     uint64_t bb_addr, nextbb_addr;
+
+    RewriterBackendFunc backendFunc;
 
     par[0] = va_arg(args, uint64_t);
     par[1] = va_arg(args, uint64_t);
@@ -333,109 +445,14 @@ uint64_t vEmulateAndCapture(Rewriter* c, va_list args)
         optPass(c, cbb);
     }
 
-    // Pass 3: generating code for BBs without linking them
+    backendFunc = c->cc->backend;
 
-    assert(c->capStackTop == -1);
-    // start with first CBB created
-    pushCaptureBB(c, c->capBB);
-    while(c->capStackTop >= 0) {
-        cbb = c->capStack[c->capStackTop];
-        c->capStackTop--;
-        if (cbb->size >= 0) continue;
-
-        assert(c->genOrderCount < GENORDER_MAX);
-        c->genOrder[c->genOrderCount++] = cbb;
-        generate(c, cbb);
-
-        if (instrIsJcc(cbb->endType)) {
-            // FIXME: order according to branch preference
-            pushCaptureBB(c, cbb->nextBranch);
-            pushCaptureBB(c, cbb->nextFallThrough);
-        }
+    if (backendFunc == NULL)
+    {
+        backendFunc = dbrew_default_backend;
     }
 
-    // Pass 4: determine trailing bytes needed for each BB
-
-    c->genOrder[c->genOrderCount] = 0;
-    for(i=0; i < c->genOrderCount; i++) {
-        uint8_t* buf;
-        int diff;
-
-        cbb = c->genOrder[i];
-        buf = useCodeStorage(c->cs, cbb->size);
-        cbb->addr2 = (uint64_t) buf;
-        if (cbb->size > 0) {
-            assert(cbb->count>0);
-            memcpy(buf, (char*)cbb->addr1, cbb->size);
-        }
-        if (!instrIsJcc(cbb->endType)) continue;
-
-        diff = cbb->nextBranch->addr1 - (cbb->addr1 + cbb->size);
-        if ((diff > -120) && (diff < 120))
-            cbb->genJcc8 = True;
-        useCodeStorage(c->cs, cbb->genJcc8 ? 2 : 6);
-        if (cbb->nextFallThrough != c->genOrder[i+1]) {
-            cbb->genJump = True;
-            useCodeStorage(c->cs, 5);
-        }
-    }
-
-    // Pass 5: fill trailing bytes with jump instructions
-
-    for(i=0; i < c->genOrderCount; i++) {
-        uint8_t* buf;
-        uint64_t buf_addr;
-        int diff;
-
-        cbb = c->genOrder[i];
-        if (!instrIsJcc(cbb->endType)) continue;
-
-        buf = (uint8_t*) (cbb->addr2 + cbb->size);
-        buf_addr = (uint64_t) buf;
-        if (cbb->genJcc8) {
-            diff = cbb->nextBranch->addr2 - (buf_addr + 2);
-            assert((diff > -128) && (diff < 127));
-
-            switch(cbb->endType) {
-            case IT_JE:  buf[0] = 0x74; break;
-            case IT_JNE: buf[0] = 0x75; break;
-            case IT_JP:  buf[0] = 0x7A; break;
-            case IT_JL:  buf[0] = 0x7C; break;
-            case IT_JGE: buf[0] = 0x7D; break;
-            case IT_JLE: buf[0] = 0x7E; break;
-            case IT_JG:  buf[0] = 0x7F; break;
-            default: assert(0);
-            }
-            buf[1] = (int8_t) diff;
-            buf += 2;
-        }
-        else {
-            diff = cbb->nextBranch->addr2 - (buf_addr + 6);
-            buf[0] = 0x0F;
-            switch(cbb->endType) {
-            case IT_JE:  buf[1] = 0x84; break;
-            case IT_JNE: buf[1] = 0x85; break;
-            case IT_JP:  buf[1] = 0x8A; break;
-            case IT_JL:  buf[1] = 0x8C; break;
-            case IT_JGE: buf[1] = 0x8D; break;
-            case IT_JLE: buf[1] = 0x8E; break;
-            case IT_JG:  buf[1] = 0x8F; break;
-            default: assert(0);
-            }
-            *(int32_t*)(buf+2) = diff;
-            buf += 6;
-        }
-        if (cbb->genJump) {
-            buf_addr = (uint64_t) buf;
-            diff = cbb->nextFallThrough->addr2 - (buf_addr + 5);
-            buf[0] = 0xE9;
-            *(int32_t*)(buf+1) = diff;
-            buf += 5;
-        }
-    }
-
-    // return value according to calling convention
-    return es->reg[Reg_AX];
+    return backendFunc(c);
 }
 
 uint64_t dbrew_emulate_capture(Rewriter* r, ...)

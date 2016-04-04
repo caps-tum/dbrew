@@ -33,7 +33,7 @@ void cc_init(CaptureConfig* cc)
     cc->hasReturnFP = False;
     cc->branches_known = False;
     cc->function_configs = 0;
-
+    cc->backend = NULL;
 }
 
 static
@@ -171,4 +171,10 @@ void dbrew_config_function_setname(Rewriter* r, uint64_t f, const char* name)
     CaptureConfig* cc = cc_get(r);
     FunctionConfig* fc = fc_get(cc, f);
     fc->name = strdup(name);
+}
+
+void dbrew_config_set_backend(Rewriter* r, RewriterBackendFunc backendFunc)
+{
+    CaptureConfig* cc = cc_get(r);
+    cc->backend = backendFunc;
 }
