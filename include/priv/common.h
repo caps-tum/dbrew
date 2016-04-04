@@ -212,10 +212,8 @@ struct _Rewriter {
     int capStackTop;
     CBB* capStack[CAPTURESTACK_LEN];
 
-    // capture order
-#define GENORDER_MAX 20
-    int genOrderCount;
-    CBB* genOrder[GENORDER_MAX];
+    uintptr_t generatedCodeAddr;
+    uintptr_t generatedCodeSize;
 
     // for optimization passes
     Bool addInliningHints;

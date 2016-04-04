@@ -56,7 +56,8 @@ Rewriter* allocRewriter()
     r->capBB = 0;
     r->currentCapBB = 0;
     r->capStackTop = -1;
-    r->genOrderCount = 0;
+    r->generatedCodeAddr = 0;
+    r->generatedCodeSize = 0;
 
     r->savedStateCount = 0;
     for(i=0; i< SAVEDSTATE_MAX; i++)
@@ -175,11 +176,16 @@ void optPass(Rewriter* r, CBB* cbb)
 }
 
 
-uint64_t
+#define GENORDER_MAX 20
+
+static uint64_t
 dbrew_default_backend(Rewriter* c)
 {
     CBB *cbb;
-    int i;
+    uint64_t i;
+
+    uint64_t genOrderCount = 0;
+    CBB* genOrder[GENORDER_MAX];
 
     // Pass 3: generating code for BBs without linking them
 
@@ -191,8 +197,8 @@ dbrew_default_backend(Rewriter* c)
         c->capStackTop--;
         if (cbb->size >= 0) continue;
 
-        assert(c->genOrderCount < GENORDER_MAX);
-        c->genOrder[c->genOrderCount++] = cbb;
+        assert(genOrderCount < GENORDER_MAX);
+        genOrder[genOrderCount++] = cbb;
         generate(c, cbb);
 
         if (instrIsJcc(cbb->endType)) {
@@ -204,12 +210,12 @@ dbrew_default_backend(Rewriter* c)
 
     // Pass 4: determine trailing bytes needed for each BB
 
-    c->genOrder[c->genOrderCount] = 0;
-    for(i=0; i < c->genOrderCount; i++) {
+    genOrder[genOrderCount] = 0;
+    for(i=0; i < genOrderCount; i++) {
         uint8_t* buf;
         int diff;
 
-        cbb = c->genOrder[i];
+        cbb = genOrder[i];
         buf = useCodeStorage(c->cs, cbb->size);
         cbb->addr2 = (uint64_t) buf;
         if (cbb->size > 0) {
@@ -222,7 +228,7 @@ dbrew_default_backend(Rewriter* c)
         if ((diff > -120) && (diff < 120))
             cbb->genJcc8 = True;
         useCodeStorage(c->cs, cbb->genJcc8 ? 2 : 6);
-        if (cbb->nextFallThrough != c->genOrder[i+1]) {
+        if (cbb->nextFallThrough != genOrder[i+1]) {
             cbb->genJump = True;
             useCodeStorage(c->cs, 5);
         }
@@ -230,12 +236,12 @@ dbrew_default_backend(Rewriter* c)
 
     // Pass 5: fill trailing bytes with jump instructions
 
-    for(i=0; i < c->genOrderCount; i++) {
+    for(i=0; i < genOrderCount; i++) {
         uint8_t* buf;
         uint64_t buf_addr;
         int diff;
 
-        cbb = c->genOrder[i];
+        cbb = genOrder[i];
         if (!instrIsJcc(cbb->endType)) continue;
 
         buf = (uint8_t*) (cbb->addr2 + cbb->size);
@@ -280,6 +286,12 @@ dbrew_default_backend(Rewriter* c)
             *(int32_t*)(buf+1) = diff;
             buf += 5;
         }
+    }
+
+    if (genOrderCount > 0)
+    {
+        c->generatedCodeAddr = genOrder[0]->addr2;
+        c->generatedCodeSize = c->cs->used - (genOrder[0]->addr2 - (uintptr_t) c->cs->buf);
     }
 
     return c->es->reg[Reg_AX];
