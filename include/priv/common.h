@@ -22,15 +22,14 @@
 
 #include <stdint.h>
 
+#include "dbrew.h"
 #include "buffers.h"
 #include "instr.h"
 
 #define debug(format, ...) printf("!DBG %s: " format "\n", __PRETTY_FUNCTION__, ##__VA_ARGS__)
 
 typedef struct _CBB CBB;
-typedef struct _DBB DBB;
 typedef struct _FunctionConfig FunctionConfig;
-typedef struct _Rewriter Rewriter;
 
 // a decoded basic block
 struct _DBB {
@@ -93,7 +92,6 @@ typedef enum _CaptureState {
 // Rewriter Configuration
 //
 
-typedef struct _FunctionConfig FunctionConfig;
 struct _FunctionConfig
 {
     uint64_t func;
@@ -115,6 +113,10 @@ typedef struct _CaptureConfig
     // linked list of configurations per function
     FunctionConfig* function_configs;
 
+    /**
+     * \brief The backend function which is responsible for code generation
+     **/
+    RewriterBackendFunc backend;
 } CaptureConfig;
 
 
@@ -173,7 +175,6 @@ struct _EmuState {
 
 };
 
-
 struct _Rewriter {
 
     // decoded instructions
@@ -213,10 +214,8 @@ struct _Rewriter {
     int capStackTop;
     CBB* capStack[CAPTURESTACK_LEN];
 
-    // capture order
-#define GENORDER_MAX 20
-    int genOrderCount;
-    CBB* genOrder[GENORDER_MAX];
+    uintptr_t generatedCodeAddr;
+    uintptr_t generatedCodeSize;
 
     // for optimization passes
     Bool addInliningHints;

@@ -145,24 +145,12 @@ void dbrew_optverbose(Rewriter* r, Bool v)
 
 uint64_t dbrew_generated_code(Rewriter* c)
 {
-    if ((c->cs == 0) || (c->cs->used == 0))
-        return 0;
-
-    if (c->genOrderCount == 0) return 0;
-    return c->genOrder[0]->addr2;
-
-    //return (uint64_t) c->cs->buf;
+    return c->generatedCodeAddr;
 }
 
 int dbrew_generated_size(Rewriter* c)
 {
-    if ((c->cs == 0) || (c->cs->used == 0))
-        return 0;
-
-    if (c->genOrderCount == 0) return 0;
-    return c->cs->used - (c->genOrder[0]->addr2 - (uint64_t) c->cs->buf);
-
-    //return c->cs->used;
+    return c->generatedCodeSize;
 }
 
 void freeCode(Rewriter* c)

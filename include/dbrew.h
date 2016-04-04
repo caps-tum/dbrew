@@ -110,6 +110,8 @@ uint64_t makeStatic(uint64_t v);
 typedef struct _Rewriter Rewriter;
 typedef struct _DBB DBB;
 
+typedef uint64_t (*RewriterBackendFunc)(Rewriter*);
+
 // allocate space for a given number of decoded instructions
 Rewriter* brew_new(void);
 
@@ -162,6 +164,11 @@ void dbrew_config_force_unknown(Rewriter* r, int depth);
 void dbrew_config_branches_known(Rewriter* r, Bool);
 // provide a name for a function (for debugging)
 void dbrew_config_function_setname(Rewriter* r, uint64_t f, const char* name);
+
+/**
+ * Set the backend function. NULL corresponds to the DBrew default backend.
+ **/
+void dbrew_config_set_backend(Rewriter*, RewriterBackendFunc);
 
 // convenience functions, using default rewriter
 void dbrew_def_verbose(Bool decode, Bool emuState, Bool emuSteps);
