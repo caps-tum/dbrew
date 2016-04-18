@@ -27,7 +27,7 @@ char* op2string(Operand* o, ValType t);
 const char* instrName(InstrType it, int* pOpCount);
 char* instr2string(Instr* instr, int align);
 char* bytes2string(Instr* instr, int start, int count);
-void dbrew_print_decoded(DBB* bb);
+char* prettyAddress(uint64_t a, FunctionConfig* fc);
 void printDecodedBBs(Rewriter* c);
 
 #endif // PRINTER_H

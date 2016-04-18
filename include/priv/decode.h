@@ -36,7 +36,4 @@ Instr* addBinaryOp(Rewriter* c, uint64_t a, uint64_t a2,
 Instr* addTernaryOp(Rewriter* c, uint64_t a, uint64_t a2,
                     InstrType it, Operand* o1, Operand* o2, Operand* o3);
 
-// decode the basic block starting at f (automatically triggered by emulator)
-DBB* dbrew_decode(Rewriter* c, uint64_t f);
-
 #endif // DECODE_H

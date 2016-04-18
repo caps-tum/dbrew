@@ -25,7 +25,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-Rewriter* allocRewriter();
+Rewriter* allocRewriter(void);
 void initRewriter(Rewriter* r);
 void freeRewriter(Rewriter* r);
 

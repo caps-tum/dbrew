@@ -1,13 +1,12 @@
 WFLAGS= -Wall -Wextra \
         -Wmissing-field-initializers -Wunused-parameter -Wold-style-definition \
         -Wmissing-declarations -Wmissing-prototypes -Wredundant-decls \
-        -Wmissing-noreturn -Wshadow -Wpointer-arith -Wcast-align \
+        -Wmissing-noreturn -Wshadow -Wpointer-arith -Wstrict-prototypes \
         -Wwrite-strings -Winline -Wformat-nonliteral -Wformat-security \
-        -Wswitch-enum -Wswitch-default -Wswitch -Winit-self \
-        -Wmissing-include-dirs -Wundef -Waggregate-return \
-        -Wmissing-format-attribute -Wnested-externs -Wstrict-prototypes
+        -Wno-switch-enum -Wno-switch-default -Wno-switch -Winit-self -Wnested-externs \
+        -Wmissing-include-dirs -Wundef -Wmissing-format-attribute
 
-CFLAGS=-g -std=gnu99 -Iinclude -Iinclude/priv #$(WFLAGS)
+CFLAGS=-g -std=gnu99 -Iinclude -Iinclude/priv $(WFLAGS)
 LDFLAGS=-g
 
 SRCS = $(wildcard src/*.c)

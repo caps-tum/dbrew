@@ -24,9 +24,7 @@
 
 #include <stdint.h>
 
-#ifndef DBREW_H
-typedef enum { False, True } Bool;
-#endif
+#include <dbrew.h>
 
 typedef enum _Reg {
     Reg_None = 0,
