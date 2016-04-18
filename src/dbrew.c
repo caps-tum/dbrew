@@ -153,19 +153,6 @@ int dbrew_generated_size(Rewriter* r)
     return r->generatedCodeSize;
 }
 
-static void freeCode(Rewriter* c)
-{
-    if (c->cs)
-        freeCodeStorage(c->cs);
-
-    free(c->cc);
-    free(c->es);
-
-    free(c->decBB);
-    free(c->decInstr);
-    free(c);
-}
-
 
 //-----------------------------------------------------------------
 // convenience functions, using defaults

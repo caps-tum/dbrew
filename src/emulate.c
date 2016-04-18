@@ -530,34 +530,23 @@ void resetCapturing(Rewriter* r)
     r->savedStateCount = 0;
 }
 
-// return 0 if not found
-CBB *findCaptureBB(Rewriter* r, uint64_t f, int esID)
-{
-    int i;
-
-    for(i = 0; i < r->capBBCount; i++)
-        if ((r->capBB[i].dec_addr == f) && (r->capBB[i].esID == esID))
-            return &(r->capBB[i]);
-
-    return 0;
-}
-
 // allocate a BB structure to collect instructions for capturing
-CBB* getCaptureBB(Rewriter* c, uint64_t f, int esID)
+CBB* getCaptureBB(Rewriter* r, uint64_t f, int esID)
 {
-    CBB* bb;
-
     // already captured?
-    bb = findCaptureBB(c, f, esID);
-    if (bb) return bb;
+    for (int i = 0; i < r->capBBCount; i++)
+    {
+        if (r->capBB[i].dec_addr == f && r->capBB[i].esID == esID)
+            return &(r->capBB[i]);
+    }
 
     // start capturing of new BB beginning at f
-    assert(c->capBBCount < c->capBBCapacity);
-    bb = &(c->capBB[c->capBBCount]);
-    c->capBBCount++;
+    assert(r->capBBCount < r->capBBCapacity);
+    CBB* bb = &(r->capBB[r->capBBCount]);
+    r->capBBCount++;
     bb->dec_addr = f;
     bb->esID = esID;
-    bb->fc = config_find_function(c, f);
+    bb->fc = config_find_function(r, f);
 
     bb->count = 0;
     bb->instr = 0; // updated on first instruction added
@@ -893,13 +882,6 @@ static void getRegValue(EmuValue* v, EmuState* es, Reg r, ValType t)
     v->type = t;
     v->val = es->reg[r];
     v->state = es->reg_state[r];
-}
-
-static void setRegValue(EmuValue* v, EmuState* es, Reg r, ValType t)
-{
-    assert(v->type == t);
-    es->reg[r] = v->val;
-    es->reg_state[r] = v->state;
 }
 
 static void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
