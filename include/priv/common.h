@@ -22,15 +22,14 @@
 
 #include <stdint.h>
 
-#include "buffers.h"
-#include "instr.h"
+#include <dbrew.h>
+#include <buffers.h>
+#include <instr.h>
 
 #define debug(format, ...) printf("!DBG %s: " format "\n", __PRETTY_FUNCTION__, ##__VA_ARGS__)
 
 typedef struct _CBB CBB;
-typedef struct _DBB DBB;
 typedef struct _FunctionConfig FunctionConfig;
-typedef struct _Rewriter Rewriter;
 
 // a decoded basic block
 struct _DBB {
@@ -40,8 +39,6 @@ struct _DBB {
     int count;
     Instr* instr; // pointer to first decoded instruction
 };
-
-char* prettyAddress(uint64_t a, FunctionConfig* fc);
 
 
 // a captured basic block
@@ -93,7 +90,6 @@ typedef enum _CaptureState {
 // Rewriter Configuration
 //
 
-typedef struct _FunctionConfig FunctionConfig;
 struct _FunctionConfig
 {
     uint64_t func;
