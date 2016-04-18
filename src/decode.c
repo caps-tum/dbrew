@@ -1050,6 +1050,8 @@ DBB* dbrew_decode(Rewriter* c, uint64_t f)
     dbb->count = c->decInstrCount - old_icount;
     dbb->size = off;
 
+    (void) has2E;
+
     if (c->showDecoding)
         dbrew_print_decoded(dbb);
 
