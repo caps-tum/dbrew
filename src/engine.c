@@ -225,9 +225,9 @@ void vEmulateAndCapture(Rewriter* c, va_list args)
     c->currentCapBB = cbb;
     if (c->addInliningHints) {
         // hint: here starts a function, we can assume ABI calling conventions
-        Instr i;
-        initSimpleInstr(&i, IT_HINT_CALL);
-        capture(c, &i);
+        Instr hintInstr;
+        initSimpleInstr(&hintInstr, IT_HINT_CALL);
+        capture(c, &hintInstr);
     }
 
     if (c->showEmuSteps) {
