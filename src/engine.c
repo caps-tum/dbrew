@@ -25,12 +25,13 @@
 
 #include "common.h"
 #include "printer.h"
+#include "engine.h"
 #include "emulate.h"
 #include "decode.h"
 #include "generate.h"
 
 
-Rewriter* allocRewriter()
+Rewriter* allocRewriter(void)
 {
     Rewriter* r;
     int i;
@@ -313,7 +314,7 @@ void vEmulateAndCapture(Rewriter* c, va_list args)
 //
 
 // test: simply copy instructions
-Instr* optPassCopy(Rewriter* r, CBB* cbb)
+static Instr* optPassCopy(Rewriter* r, CBB* cbb)
 {
     Instr *first, *instr;
     int i;
@@ -329,7 +330,7 @@ Instr* optPassCopy(Rewriter* r, CBB* cbb)
     return first;
 }
 
-void optPass(Rewriter* r, CBB* cbb)
+static void optPass(Rewriter* r, CBB* cbb)
 {
     Instr* newInstrs;
 

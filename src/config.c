@@ -51,7 +51,7 @@ void cc_free(CaptureConfig* cc)
 }
 
 static
-CaptureConfig* cc_new()
+CaptureConfig* cc_new(void)
 {
     CaptureConfig* cc;
 

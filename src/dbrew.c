@@ -58,7 +58,7 @@ uint64_t makeStatic(uint64_t v)
  * DBrew API functions
  */
 
-Rewriter* dbrew_new()
+Rewriter* dbrew_new(void)
 {
     return allocRewriter();
 }
@@ -153,7 +153,7 @@ int dbrew_generated_size(Rewriter* r)
     return r->generatedCodeSize;
 }
 
-void freeCode(Rewriter* c)
+static void freeCode(Rewriter* c)
 {
     if (c->cs)
         freeCodeStorage(c->cs);
@@ -172,7 +172,7 @@ void freeCode(Rewriter* c)
 
 Rewriter* defaultRewriter = 0;
 
-Rewriter* getDefaultRewriter()
+static Rewriter* getDefaultRewriter(void)
 {
     if (!defaultRewriter)
         defaultRewriter = dbrew_new();

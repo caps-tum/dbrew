@@ -54,14 +54,14 @@
  * Saving copies the complete EmuState, inheriting the individual states.
  */
 
-char captureState2Char(CaptureState s)
+static char captureState2Char(CaptureState s)
 {
     assert((s >= 0) && (s < CS_Max));
     assert(CS_Max == 5);
     return "-DSR2"[s];
 }
 
-Bool csIsStatic(CaptureState s)
+static Bool csIsStatic(CaptureState s)
 {
     if ((s == CS_STATIC) || (s == CS_STATIC2)) return True;
     return False;
@@ -69,7 +69,7 @@ Bool csIsStatic(CaptureState s)
 
 
 
-EmuValue emuValue(uint64_t v, ValType t, CaptureState s)
+static EmuValue emuValue(uint64_t v, ValType t, CaptureState s)
 {
     EmuValue ev;
     ev.val = v;
@@ -79,7 +79,7 @@ EmuValue emuValue(uint64_t v, ValType t, CaptureState s)
     return ev;
 }
 
-EmuValue staticEmuValue(uint64_t v, ValType t)
+static EmuValue staticEmuValue(uint64_t v, ValType t)
 {
     EmuValue ev;
     ev.val = v;
@@ -152,7 +152,7 @@ void freeEmuState(Rewriter* r)
 // are the capture states of a memory resource from different EmuStates equal?
 // this is required for compatibility of generated code points, and
 // compatibility is needed to be able to jump between such code points
-Bool csIsEqual(EmuState* es1, CaptureState s1, uint64_t v1,
+static Bool csIsEqual(EmuState* es1, CaptureState s1, uint64_t v1,
                EmuState* es2, CaptureState s2, uint64_t v2)
 {
     // normalize meta states: CS_STATIC2 is equivalent to CS_STATIC
@@ -182,7 +182,7 @@ Bool csIsEqual(EmuState* es1, CaptureState s1, uint64_t v1,
 }
 
 // states are equal if metainformation is equal and static data is the same
-Bool esIsEqual(EmuState* es1, EmuState* es2)
+static Bool esIsEqual(EmuState* es1, EmuState* es2)
 {
     int i;
 
@@ -238,7 +238,7 @@ Bool esIsEqual(EmuState* es1, EmuState* es2)
     return True;
 }
 
-void copyEmuState(EmuState* dst, EmuState* src)
+static void copyEmuState(EmuState* dst, EmuState* src)
 {
     int i;
 
@@ -290,7 +290,7 @@ void copyEmuState(EmuState* dst, EmuState* src)
         dst->ret_stack[i] = src->ret_stack[i];
 }
 
-EmuState* cloneEmuState(EmuState* src)
+static EmuState* cloneEmuState(EmuState* src)
 {
     EmuState* dst;
 
@@ -468,7 +468,7 @@ void printStaticEmuState(EmuState* es, int esID)
         printf("(none)\n");
 }
 
-char combineState(CaptureState s1, CaptureState s2,
+static char combineState(CaptureState s1, CaptureState s2,
                   Bool isSameValue)
 {
     // dead/invalid: combining with something invalid makes result invalid
@@ -498,7 +498,7 @@ char combineState(CaptureState s1, CaptureState s2,
     return CS_DYNAMIC;
 }
 
-char combineState4Flags(CaptureState s1, CaptureState s2)
+static char combineState4Flags(CaptureState s1, CaptureState s2)
 {
     CaptureState s;
 
@@ -662,7 +662,7 @@ static uint32_t parity_tab[8] =
 #define XOR2(x)     (((x) ^ ((x)>>1)) & 0x1)
 
 // set flags for operation "v1 - v2"
-CaptureState setFlagsSub(EmuState* es, EmuValue* v1, EmuValue* v2)
+static CaptureState setFlagsSub(EmuState* es, EmuValue* v1, EmuValue* v2)
 {
     CaptureState st;
     uint64_t r, bc, d, s;
@@ -706,7 +706,7 @@ CaptureState setFlagsSub(EmuState* es, EmuValue* v1, EmuValue* v2)
 }
 
 // set flags for operation "v1 + v2"
-void setFlagsAdd(EmuState* es, EmuValue* v1, EmuValue* v2)
+static void setFlagsAdd(EmuState* es, EmuValue* v1, EmuValue* v2)
 {
     CaptureState st;
     uint64_t r, cc, d, s;
@@ -750,7 +750,7 @@ void setFlagsAdd(EmuState* es, EmuValue* v1, EmuValue* v2)
 }
 
 // for bitwise operations: And, Xor, Or
-CaptureState setFlagsBit(EmuState* es, InstrType it,
+static CaptureState setFlagsBit(EmuState* es, InstrType it,
                          EmuValue* v1, EmuValue* v2, Bool sameOperands)
 {
     CaptureState s;
@@ -803,7 +803,7 @@ CaptureState setFlagsBit(EmuState* es, InstrType it,
 // if addr on stack, return true and stack offset in <off>,
 //  otherwise return false
 // the returned offset is static only if address is stack-relative
-Bool getStackOffset(EmuState* es, EmuValue* addr, EmuValue* off)
+static Bool getStackOffset(EmuState* es, EmuValue* addr, EmuValue* off)
 {
     if ((addr->val >= es->stackStart) && (addr->val < es->stackTop)) {
         off->type = VT_32;
@@ -814,7 +814,7 @@ Bool getStackOffset(EmuState* es, EmuValue* addr, EmuValue* off)
     return False;
 }
 
-CaptureState getStackState(EmuState* es, EmuValue* off)
+static CaptureState getStackState(EmuState* es, EmuValue* off)
 {
     if (off->state == CS_STATIC) {
         if (off->val >= es->stackSize) return CS_DEAD;
@@ -824,7 +824,7 @@ CaptureState getStackState(EmuState* es, EmuValue* off)
     return CS_DYNAMIC;
 }
 
-void getStackValue(EmuState* es, EmuValue* v, EmuValue* off)
+static void getStackValue(EmuState* es, EmuValue* v, EmuValue* off)
 {
     int i, count;
     CaptureState state;
@@ -857,7 +857,7 @@ void getStackValue(EmuState* es, EmuValue* v, EmuValue* off)
 }
 
 
-void setStackValue(EmuState* es, EmuValue* v, EmuValue* off)
+static void setStackValue(EmuState* es, EmuValue* v, EmuValue* off)
 {
     uint32_t* a32;
     uint64_t* a64;
@@ -888,21 +888,21 @@ void setStackValue(EmuState* es, EmuValue* v, EmuValue* off)
         es->stackAccessed = es->stackStart + off->val;
 }
 
-void getRegValue(EmuValue* v, EmuState* es, Reg r, ValType t)
+static void getRegValue(EmuValue* v, EmuState* es, Reg r, ValType t)
 {
     v->type = t;
     v->val = es->reg[r];
     v->state = es->reg_state[r];
 }
 
-void setRegValue(EmuValue* v, EmuState* es, Reg r, ValType t)
+static void setRegValue(EmuValue* v, EmuState* es, Reg r, ValType t)
 {
     assert(v->type == t);
     es->reg[r] = v->val;
     es->reg_state[r] = v->state;
 }
 
-void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
+static void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
                  Bool shouldBeStack)
 {
     EmuValue off;
@@ -930,7 +930,7 @@ void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
 }
 
 // reading memory using segment override (fs/gs)
-void getSegMemValue(EmuValue* v, EmuValue* addr, ValType t, OpSegOverride s)
+static void getSegMemValue(EmuValue* v, EmuValue* addr, ValType t, OpSegOverride s)
 {
     assert(s != OSO_None);
     uint32_t v32;
@@ -973,7 +973,7 @@ void getSegMemValue(EmuValue* v, EmuValue* addr, ValType t, OpSegOverride s)
     }
 }
 
-void setMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
+static void setMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
                  int shouldBeStack)
 {
     EmuValue off;
@@ -1006,7 +1006,7 @@ void setMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
 }
 
 // helper for getOpAddr()
-void addRegToValue(EmuValue* v, EmuState* es, Reg r, int scale)
+static void addRegToValue(EmuValue* v, EmuState* es, Reg r, int scale)
 {
     if (r == Reg_None) return;
 
@@ -1016,7 +1016,7 @@ void addRegToValue(EmuValue* v, EmuState* es, Reg r, int scale)
 
 // get resulting address (and state) for memory operands
 // this cannot be used with fs/gs segment override
-void getOpAddr(EmuValue* v, EmuState* es, Operand* o)
+static void getOpAddr(EmuValue* v, EmuState* es, Operand* o)
 {
     assert(opIsInd(o));
     assert(o->seg == OSO_None);
@@ -1033,7 +1033,7 @@ void getOpAddr(EmuValue* v, EmuState* es, Operand* o)
 }
 
 // returned value v should be casted to expected type (8/16/32 bit)
-void getOpValue(EmuValue* v, EmuState* es, Operand* o)
+static void getOpValue(EmuValue* v, EmuState* es, Operand* o)
 {
     EmuValue addr;
 
@@ -1081,7 +1081,7 @@ void getOpValue(EmuValue* v, EmuState* es, Operand* o)
 }
 
 // only the bits of v are used which are required for operand type
-void setOpValue(EmuValue* v, EmuState* es, Operand* o)
+static void setOpValue(EmuValue* v, EmuState* es, Operand* o)
 {
     EmuValue addr;
 
@@ -1110,7 +1110,7 @@ void setOpValue(EmuValue* v, EmuState* es, Operand* o)
 // Do we maintain capture state for a value pointed to by an operand?
 // Returns false for memory locations not on stack or when stack offset
 //  is not static/known.
-Bool keepsCaptureState(EmuState* es, Operand* o)
+static Bool keepsCaptureState(EmuState* es, Operand* o)
 {
     EmuValue addr;
     EmuValue off;
@@ -1127,7 +1127,7 @@ Bool keepsCaptureState(EmuState* es, Operand* o)
 }
 
 // apply known state to memory operand (this modifies the operand in-place)
-void applyStaticToInd(Operand* o, EmuState* es)
+static void applyStaticToInd(Operand* o, EmuState* es)
 {
     if (!opIsInd(o)) return;
 
@@ -1145,7 +1145,7 @@ void applyStaticToInd(Operand* o, EmuState* es)
 // capture processing for instruction types
 
 // both MOV and MOVSX (sign extend 32->64)
-void captureMov(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
+static void captureMov(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
 {
     Instr i;
     Operand *o;
@@ -1168,7 +1168,7 @@ void captureMov(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
     capture(c, &i);
 }
 
-void captureCMov(Rewriter* c, Instr* orig, EmuState* es,
+static void captureCMov(Rewriter* c, Instr* orig, EmuState* es,
                  EmuValue* res, CaptureState cState, Bool cond)
 {
     Instr i;
@@ -1203,7 +1203,7 @@ void captureCMov(Rewriter* c, Instr* orig, EmuState* es,
     capture(c, &i);
 }
 
-void captureIDiv(Rewriter* r, Instr* orig, CaptureState resState, EmuState* es)
+static void captureIDiv(Rewriter* r, Instr* orig, CaptureState resState, EmuState* es)
 {
     Instr i;
     EmuValue v;
@@ -1243,7 +1243,7 @@ void captureIDiv(Rewriter* r, Instr* orig, CaptureState resState, EmuState* es)
 }
 
 // dst = dst op src
-void captureBinaryOp(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
+static void captureBinaryOp(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
 {
     EmuValue opval;
     Instr i;
@@ -1313,7 +1313,7 @@ void captureBinaryOp(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
 }
 
 // dst = unary-op dst
-void captureUnaryOp(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
+static void captureUnaryOp(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
 {
     Instr i;
 
@@ -1324,7 +1324,7 @@ void captureUnaryOp(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
     capture(c, &i);
 }
 
-void captureLea(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
+static void captureLea(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
 {
     Instr i;
 
@@ -1345,7 +1345,7 @@ void captureLea(Rewriter* c, Instr* orig, EmuState* es, EmuValue* res)
     capture(c, &i);
 }
 
-void captureCmp(Rewriter* c, Instr* orig, EmuState* es, CaptureState s)
+static void captureCmp(Rewriter* c, Instr* orig, EmuState* es, CaptureState s)
 {
     EmuValue opval;
     Instr i;
@@ -1372,7 +1372,7 @@ void captureCmp(Rewriter* c, Instr* orig, EmuState* es, CaptureState s)
     capture(c, &i);
 }
 
-void captureTest(Rewriter* c, Instr* orig, EmuState* es, CaptureState s)
+static void captureTest(Rewriter* c, Instr* orig, EmuState* es, CaptureState s)
 {
     Instr i;
 
@@ -1403,7 +1403,7 @@ void captureRet(Rewriter* c, Instr* orig, EmuState* es)
 
 // helper for capturePassThrough: do capture state modifications
 // if provided as meta information (e.g. setting values in locations unknown)
-void processPassThrough(Rewriter* c, Instr* i, EmuState* es)
+static void processPassThrough(Instr* i, EmuState* es)
 {
     assert(i->ptLen >0);
     if (i->ptSChange == SC_None) return;
@@ -1421,12 +1421,12 @@ void processPassThrough(Rewriter* c, Instr* i, EmuState* es)
     }
 }
 
-void capturePassThrough(Rewriter* c, Instr* orig, EmuState* es)
+static void capturePassThrough(Rewriter* c, Instr* orig, EmuState* es)
 {
     Instr i;
 
     // pass-through: may have influence to emu state
-    processPassThrough(c, orig, es);
+    processPassThrough(orig, es);
 
     assert(orig->ptLen >0);
     initSimpleInstr(&i, orig->type);
@@ -1465,7 +1465,7 @@ void capturePassThrough(Rewriter* c, Instr* orig, EmuState* es)
 }
 
 // this ends a captured BB, queuing new paths to be traced
-void captureJcc(Rewriter* r, InstrType it,
+static void captureJcc(Rewriter* r, InstrType it,
                 uint64_t branchTarget, uint64_t fallthroughTarget,
                 Bool didBranch)
 {
