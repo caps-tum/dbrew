@@ -274,7 +274,7 @@ static void copyEmuState(EmuState* dst, EmuState* src)
     else {
         // stack to restore is larger than at destination:
         // make sure that start of source was never accessed
-        int diff = src->stackSize - dst->stackSize;
+        unsigned long diff = src->stackSize - dst->stackSize;
         assert(src->stackAccessed - src->stackStart >= diff);
 
         dst->stackStart = src->stackStart + diff;
@@ -817,7 +817,7 @@ static Bool getStackOffset(EmuState* es, EmuValue* addr, EmuValue* off)
 static CaptureState getStackState(EmuState* es, EmuValue* off)
 {
     if (off->state == CS_STATIC) {
-        if (off->val >= es->stackSize) return CS_DEAD;
+        if (off->val >= (uint64_t) es->stackSize) return CS_DEAD;
         if (off->val < es->stackAccessed - es->stackStart) return CS_DEAD;
         return es->stackState[off->val];
     }
@@ -829,7 +829,7 @@ static void getStackValue(EmuState* es, EmuValue* v, EmuValue* off)
     int i, count;
     CaptureState state;
 
-    assert((off->val >= 0) && (off->val < es->stackSize));
+    assert(off->val < (uint64_t) es->stackSize);
 
     switch(v->type) {
     case VT_32:
