@@ -6,15 +6,20 @@ import os
 import sys
 import difflib
 
+def fetchCompilerArgs(file, outFile, testCase):
+    with open(file, "r") as f:
+        argLine = f.readline()
+        if argLine[:12] == "//  COMPILE:":
+            return (argLine[12:] % (outFile, testCase)).split()
+    return None
+
 def compile(testCase):
     print("==TEST Compiling", testCase)
     outFile = testCase + ".out"
 
-    args = ["cc", "-o", outFile, testCase, "test-parser.c", "../libdbrew.a", "-I../include"]
-    with open("test-parser.c", "r") as f:
-        argLine = f.readline()
-        if argLine[:12] == "//  COMPILE:":
-            args = (argLine[12:] % (outFile, testCase)).split()
+    args = fetchCompilerArgs(testCase, outFile, testCase)
+    if not args: args = fetchCompilerArgs("test-parser.c", outFile, testCase)
+    if not args: args = ["cc", "-o", outFile, testCase, "test-parser.c"]
 
     exitCode = call(args)
     if exitCode != 0:
