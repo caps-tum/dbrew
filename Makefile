@@ -4,7 +4,7 @@ WFLAGS_BASE=-Wall \
             -Wmissing-declarations -Wmissing-prototypes -Wredundant-decls \
             -Wmissing-noreturn -Wshadow -Wpointer-arith -Wno-cast-align \
             -Wwrite-strings -Winline -Wformat-nonliteral -Wformat-security \
-            -Wswitch-default -Winit-self -Wnested-externs \
+            -Wswitch-default -Winit-self -Wnested-externs  -Wstrict-prototypes \
             -Wmissing-include-dirs -Wundef -Wmissing-format-attribute
 ifeq ($(CI),1)
 WFLAGS=-Werror $(WFLAGS_BASE)
@@ -12,9 +12,7 @@ else
 WFLAGS=$(WFLAGS_BASE)
 endif
 
-WFLAGS2=-Wall -Wextra \
-        -Wswitch-enum -Wswitch \
-        -Waggregate-return -Wstrict-prototypes
+WFLAGS2=-Wextra -Wswitch-enum -Wswitch -Waggregate-return
 
 CFLAGS=-g -std=gnu99 -Iinclude -Iinclude/priv $(WFLAGS)
 LDFLAGS=-g
