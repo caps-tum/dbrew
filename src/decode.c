@@ -937,7 +937,7 @@ DBB* dbrew_decode(Rewriter* r, uint64_t f)
         case 0xBC: case 0xBD: case 0xBE: case 0xBF:
             // MOV r32/64,imm32/64
             o1.reg = Reg_AX + (opc - 0xB8);
-            if (rex & REX_MASK_R) o1.reg += 8;
+            if (rex & REX_MASK_R || rex & REX_MASK_B) o1.reg += 8;
             if (rex & REX_MASK_W) {
                 vt = VT_64;
                 o1.type = OT_Reg64;
