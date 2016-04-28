@@ -1,10 +1,9 @@
 
-WFLAGS_BASE=-Wall \
-            -Wmissing-field-initializers -Wunused-parameter -Wold-style-definition \
-            -Wmissing-declarations -Wmissing-prototypes -Wredundant-decls \
-            -Wmissing-noreturn -Wshadow -Wpointer-arith -Wno-cast-align \
+WFLAGS_BASE=-Wall -Wextra -Wmissing-field-initializers -Wunused-parameter \
+            -Wold-style-definition -Wmissing-declarations -Wmissing-prototypes \
+            -Wredundant-decls -Wmissing-noreturn -Wshadow -Wpointer-arith \
             -Wwrite-strings -Winline -Wformat-nonliteral -Wformat-security \
-            -Wswitch-default -Winit-self -Wnested-externs  -Wstrict-prototypes \
+            -Wswitch-default -Winit-self -Wnested-externs -Wstrict-prototypes \
             -Wmissing-include-dirs -Wundef -Wmissing-format-attribute
 ifeq ($(CI),1)
 WFLAGS=-Werror $(WFLAGS_BASE)
@@ -12,7 +11,7 @@ else
 WFLAGS=$(WFLAGS_BASE)
 endif
 
-WFLAGS2=-Wextra -Wswitch-enum -Wswitch -Waggregate-return
+WFLAGS2=-Wswitch-enum -Wswitch -Waggregate-return
 
 CFLAGS=-g -std=gnu99 -Iinclude -Iinclude/priv $(WFLAGS)
 LDFLAGS=-g
