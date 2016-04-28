@@ -23,10 +23,9 @@
 #define INSTR_H
 
 #include "dbrew.h"
+#include "expr.h"
 
 #include <stdint.h>
-
-typedef struct _ExprNode ExprNode; // for annotations in Instr
 
 typedef enum _Reg {
     Reg_None = 0,

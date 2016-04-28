@@ -1,10 +1,17 @@
-WFLAGS= \
-        -Wmissing-field-initializers -Wunused-parameter -Wold-style-definition \
-        -Wmissing-declarations -Wmissing-prototypes -Wredundant-decls \
-        -Wmissing-noreturn -Wshadow -Wpointer-arith -Wcast-align \
-        -Wwrite-strings -Winline -Wformat-nonliteral -Wformat-security \
-        -Wswitch-default -Winit-self -Wnested-externs \
-        -Wmissing-include-dirs -Wundef -Wmissing-format-attribute
+
+WFLAGS_BASE=-Wall \
+            -Wmissing-field-initializers -Wunused-parameter -Wold-style-definition \
+            -Wmissing-declarations -Wmissing-prototypes -Wredundant-decls \
+            -Wmissing-noreturn -Wshadow -Wpointer-arith -Wno-cast-align \
+            -Wwrite-strings -Winline -Wformat-nonliteral -Wformat-security \
+            -Wswitch-default -Winit-self -Wnested-externs \
+            -Wmissing-include-dirs -Wundef -Wmissing-format-attribute
+ifeq ($(CI),1)
+WFLAGS=-Werror $(WFLAGS_BASE)
+else
+WFLAGS=$(WFLAGS_BASE)
+endif
+
 WFLAGS2=-Wall -Wextra \
         -Wswitch-enum -Wswitch \
         -Waggregate-return -Wstrict-prototypes

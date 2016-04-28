@@ -22,6 +22,7 @@
 
 #include "dbrew.h"
 #include "buffers.h"
+#include "expr.h"
 #include "instr.h"
 
 #include <stdint.h>
@@ -30,8 +31,6 @@
 
 typedef struct _CBB CBB;
 typedef struct _FunctionConfig FunctionConfig;
-typedef struct _Rewriter Rewriter;
-typedef struct _ExprPool ExprPool;
 
 // a decoded basic block
 struct _DBB {

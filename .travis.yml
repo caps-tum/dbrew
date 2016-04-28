@@ -14,5 +14,5 @@ before_install:
 
 # build and test
 script:
-    - make
+    - make CI=1
     - make test
