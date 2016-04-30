@@ -1,4 +1,4 @@
-// RUN: %s --var 0 1
+//!run = %s --var 0 1
     .text
     .globl  f1
     .type   f1, @function

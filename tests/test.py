@@ -1,127 +1,176 @@
 #!/usr/bin/env python3
 
 from subprocess import call, Popen, PIPE
+import argparse
 import fnmatch
 import os
 import sys
 import difflib
 
-def fetchCompilerArgs(file, outFile, testCase):
-    with open(file, "r") as f:
-        argLine = f.readline()
-        if argLine[:12] == "//  COMPILE:":
-            return (argLine[12:] % (outFile, testCase)).split()
-    return None
+class TestFailException(Exception): pass
 
-def fetchRunArgs(file, outFile):
-    with open(file, "r") as f:
-        argLine = f.readline()
-        if argLine[:7] == "// RUN:":
-            return (argLine[7:] % (outFile)).split()
-    return None
+class Utils:
 
-def compile(testCase):
-    print("==TEST Compiling", testCase)
-    outFile = testCase + ".out"
+    def fetchProperties(fileName):
+        """
+        Fetch properties from a file.
+        """
 
-    args = fetchCompilerArgs(testCase, outFile, testCase)
-    if not args: args = fetchCompilerArgs("test-driver.c", outFile, testCase)
-    if not args: args = ["cc", "-o", outFile, testCase, "test-driver.c"]
+        properties = {}
+        with open(fileName, "r") as f:
+            while True:
+                argLine = f.readline()
+                if len(argLine) >= 4 and argLine[:3] == "//!":
+                    split = argLine[3:].split("=", 1)
+                    properties[split[0].lower().strip()] = split[1][:-1].strip()
+                else: break
 
-    exitCode = call(args)
-    if exitCode != 0:
-        print("==TEST ERROR while compiling, skipping")
-        raise Exception("Cannot compile")
-    return outFile
+        return properties
 
-def runTestCase(testCase):
-    outFile = compile(testCase)
-    print("==TEST Running", testCase)
+    def execBuffered(command):
+        proc = Popen(command, stdout=PIPE, stderr=PIPE)
+        output = []
 
-    args = fetchRunArgs(testCase, outFile)
-    if not args: args = [outFile];
+        # This iterates through stdout and stderr in this order.
+        for stream in proc.communicate():
+            for out in stream.splitlines():
+                out = out.decode("utf-8")
+                if len(out) >= 4 and out[:4] == "!DBG": continue
+                output.append(out + "\n")
 
-    proc = Popen(args, stdout=PIPE, stderr=PIPE)
-    testResult = []
+        return proc.returncode, output
 
-    # This iterates through stdout and stderr in this order.
-    for stream in proc.communicate():
-        for out in stream.splitlines():
-            # Filter out debug output and remove trailing whitespaces for git
-            out = out.decode("utf-8")
-            if len(out) >= 4 and out[:4] == "!DBG": continue
-            testResult.append(out + "\n")
 
-    if proc.returncode != 0:
-        print("==TEST CRASH", testCase, "return code", proc.returncode)
-        raise Exception("Test exited with non-zero code")
-    return testResult
+class TestCase:
+    WAITING = 1
+    COMPILED = 2
+    EXECUTED = 3
+    SUCCESS = 4
+    FAILED = 5
 
-def store(testCase):
-    with open(testCase + ".expect", "w") as f:
-        f.writelines(runTestCase(testCase))
-        print("==TEST Stored", testCase)
+    def __init__(self, testCase):
+        self.expectFile = testCase + ".expect"
+        self.sourceFile = testCase
+        self.outFile = testCase + ".out"
+        self.testResult = None
+        self.status = TestCase.WAITING
 
-def runAndPrint(testCase):
-    print("".join(runTestCase(testCase)))
+        self.properties = Utils.fetchProperties(self.sourceFile)
 
-def test(testCase):
-    with open(testCase + ".expect") as f:
-        comparison = f.readlines()
-    output = runTestCase(testCase)
+        driver = self.properties["driver"] if "driver" in self.properties else "test-driver.c"
+        self.driverProperties = Utils.fetchProperties(driver)
 
-    if output != comparison:
-        print("==TEST FAILED  --  DIFF BELOW")
-        for line in difflib.context_diff(comparison, output): sys.stdout.write(line)
-        raise Exception("Output incorrect")
+    def getProperty(self, name, default):
+        if name in self.properties: return self.properties[name]
+        elif name in self.driverProperties: return self.driverProperties[name]
+        else: return default
 
-actions = [
-    ("--test", test),
-    ("--run", runAndPrint),
-    ("--store", store),
-    ("--compile-only", compile)
-]
+    def compile(self):
+        if self.status != TestCase.WAITING: return
+
+        compileArgs = (self.getProperty("compile", "cc -o %s %s") % (self.outFile, self.sourceFile)).split()
+        returnCode, output = Utils.execBuffered(compileArgs)
+
+        if returnCode != 0:
+            print("FAIL (Compile)")
+            print("".join(output))
+            self.status = TestCase.FAILED
+            raise TestFailException()
+        else:
+            self.status = TestCase.COMPILED
+
+    def run(self):
+        self.compile()
+
+        if self.status != TestCase.COMPILED: return
+
+        runArgs = (self.getProperty("run", "%s") % (self.outFile)).split()
+        returnCode, testResult = Utils.execBuffered(runArgs)
+
+        if returnCode != 0:
+            print("FAIL (Exit Code %d)" % returnCode)
+            print("".join(testResult))
+            self.status = TestCase.FAILED
+            raise TestFailException()
+        elif int(self.getProperty("nooutput", "0")) == 1:
+            print("OK")
+            self.status = TestCase.SUCCESS
+        else:
+            self.status = TestCase.EXECUTED
+            self.testResult = testResult
+
+    def test(self):
+        self.run()
+
+        if self.status != TestCase.EXECUTED: return
+
+        with open(self.expectFile) as f:
+            comparison = f.readlines()
+
+        if self.testResult != comparison:
+            print("FAIL (Output)")
+            for line in difflib.context_diff(comparison, self.testResult): sys.stdout.write(line)
+            self.status = TestCase.FAILED
+            raise TestFailException()
+        else:
+            print("OK")
+            self.status = TestCase.SUCCESS
+
+    def store(self):
+        self.run()
+
+        if self.status != TestCase.EXECUTED: return
+
+        with open(self.expectFile, "w") as f:
+            f.writelines(self.testResult)
+
+        print("OK")
+        self.status = TestCase.SUCCESS
+
+    def printResult(self):
+        self.run()
+
+        if self.status != TestCase.EXECUTED: return
+
+        print("OK")
+        print("".join(self.testResult))
+
+        self.status = TestCase.SUCCESS
 
 if __name__ == "__main__":
-    testFunction = test
-    files = None
-
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "--help":
-            print(sys.argv[0], "[--store,--compile-only]", "[.expect files]")
-            print("If no files are specified, all files in the cases folder are used.")
-            sys.exit(0)
-
-        for flag, function in actions:
-            if sys.argv[1] == flag:
-                testFunction = function
-                files = sys.argv[2:]
-                break
-
-        if files is None:
-            files = sys.argv[1:]
+    argparser = argparse.ArgumentParser(description='Test Script.')
+    argparser.add_argument("--test", help="Run tests and compare output (default)", dest="action", action="store_const", const=TestCase.test, default=TestCase.test)
+    argparser.add_argument("--run", help="Run tests and print ouput", dest="action", action="store_const", const=TestCase.printResult)
+    argparser.add_argument("--store", help="Run tests and store ouput", dest="action", action="store_const", const=TestCase.store)
+    argparser.add_argument("cases", nargs="*")
+    args = argparser.parse_args()
 
     # In case there are no flags given or a flag is given but no file:
-    # Use all *.expect files in the cases directory.
-    if not files or len(files) == 0:
-        files = []
+    # Use all *.c and *.s files in the cases directory.
+    expectFiles = args.cases
+    if len(expectFiles) == 0:
         for root, dirnames, filenames in os.walk("cases"):
-            for filename in fnmatch.filter(filenames, "*.expect"):
-                files.append(os.path.join(root, filename))
+            for filename in fnmatch.filter(filenames, "*.[cs]"):
+                expectFiles.append(os.path.join(root, filename))
 
     # Remove .expect extension for the real filename
-    files = [file[:-7] for file in files]
+    testCases = [TestCase(file) for file in expectFiles]
 
     failed = []
-    for testCase in files:
+    for testCase in testCases:
+        sys.stdout.write((testCase.sourceFile + ":").ljust(60))
         try:
-            testFunction(testCase)
-            print("==TEST PASSED")
+            args.action(testCase)
+        except TestFailException:
+            # We already printed "FAIL"
+            failed.append(testCase.sourceFile)
         except Exception as e:
-            print("==TEST FAILED", e)
-            failed.append(testCase)
+            print("FAIL (Exception)")
+            print(e)
+            failed.append(testCase.sourceFile)
+
     if len(failed) > 0:
-        print("==TEST RESULT:", len(failed), "FAILED:", ", ".join(failed))
+        print("Summary:", len(failed), "of", len(testCases), "tests", "failed:", ", ".join(failed))
         sys.exit(1)
     else:
-        print("==TESTS PASSED")
+        print("All tests passed.")

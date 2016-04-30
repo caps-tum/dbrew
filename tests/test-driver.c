@@ -1,4 +1,4 @@
-//  COMPILE:cc -g -o %s %s test-driver.c ../libdbrew.a -I../include
+//!compile = cc -g -o %s %s test-driver.c ../libdbrew.a -I../include
 
 #include <stdio.h>
 #include <stdbool.h>
