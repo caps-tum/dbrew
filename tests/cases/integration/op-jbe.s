@@ -11,4 +11,3 @@ f1:
 1:
     mov eax, 1
     ret
-.att_syntax noprefix

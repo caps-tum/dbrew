@@ -6,4 +6,3 @@ f1:
     mov r9d, 0
     mov rax, r9
     ret
-.att_syntax noprefix

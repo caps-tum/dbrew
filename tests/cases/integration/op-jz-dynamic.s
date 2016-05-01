@@ -10,4 +10,3 @@ f1:
 1:
     inc eax
     ret
-.att_syntax noprefix

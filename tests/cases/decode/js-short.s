@@ -6,4 +6,3 @@
 f1:
 1:
     js 1b
-.att_syntax noprefix

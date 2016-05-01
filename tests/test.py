@@ -28,7 +28,7 @@ class Utils:
         return properties
 
     def execBuffered(command):
-        proc = Popen(command, stdout=PIPE, stderr=PIPE)
+        proc = Popen(["/bin/sh", "-c", command], stdout=PIPE, stderr=PIPE)
         output = []
 
         # This iterates through stdout and stderr in this order.
@@ -57,8 +57,8 @@ class TestCase:
 
         self.properties = Utils.fetchProperties(self.sourceFile)
 
-        driver = self.properties["driver"] if "driver" in self.properties else "test-driver.c"
-        self.driverProperties = Utils.fetchProperties(driver)
+        self.driver = self.properties["driver"] if "driver" in self.properties else "test-driver.c"
+        self.driverProperties = Utils.fetchProperties(self.driver)
 
     def getProperty(self, name, default):
         if name in self.properties: return self.properties[name]
@@ -68,7 +68,18 @@ class TestCase:
     def compile(self):
         if self.status != TestCase.WAITING: return
 
-        compileArgs = (self.getProperty("compile", "cc -o %s %s") % (self.outFile, self.sourceFile)).split()
+        compileArgs = self.getProperty("compile", "{cc} -o {outfile} {infile} {driver}").format(**{
+            # At the time of writing (May 2016), Clang refuses to emit near
+            # jumps as GNU AS does. Therefore, the CC env variable is not
+            # respected currently. Once these issues have been resolved, we can
+            # also use Clang.
+            "cc": "cc",
+            # "cc": os.environ["CC"] if "CC" in os.environ else "cc",
+            "outfile": self.outFile,
+            "infile": self.sourceFile,
+            "driver": self.driver
+        })
+
         returnCode, output = Utils.execBuffered(compileArgs)
 
         if returnCode != 0:
@@ -84,7 +95,10 @@ class TestCase:
 
         if self.status != TestCase.COMPILED: return
 
-        runArgs = (self.getProperty("run", "%s") % (self.outFile)).split()
+        runArgs = self.getProperty("run", "{outfile}").format(**{
+            "outfile": self.outFile,
+        })
+
         returnCode, testResult = Utils.execBuffered(runArgs)
 
         if returnCode != 0:

@@ -1,4 +1,4 @@
-//!compile = cc -g -o %s %s test-driver-generate.c ../libdbrew.a -I../include -I../include/priv
+//!compile = {cc} -std=c99 -g -o {outfile} {infile} {driver} ../libdbrew.a -I../include -I../include/priv
 //!nooutput = 1
 
 #include <stdio.h>
