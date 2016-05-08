@@ -8,6 +8,7 @@ import sys
 import difflib
 
 class TestFailException(Exception): pass
+class TestIgnoredException(Exception): pass
 
 class Utils:
 
@@ -47,6 +48,7 @@ class TestCase:
     EXECUTED = 3
     SUCCESS = 4
     FAILED = 5
+    IGNORED = 6
 
     def __init__(self, testCase):
         self.expectFile = testCase + ".expect"
@@ -118,8 +120,13 @@ class TestCase:
 
         if self.status != TestCase.EXECUTED: return
 
-        with open(self.expectFile) as f:
-            comparison = f.readlines()
+        try:
+            with open(self.expectFile) as f:
+                comparison = f.readlines()
+        except Exception:
+            print("IGNORED")
+            self.status = TestCase.IGNORED
+            raise TestIgnoredException()
 
         if self.testResult != comparison:
             print("FAIL (Output)")
@@ -171,6 +178,7 @@ if __name__ == "__main__":
     testCases = [TestCase(file) for file in expectFiles]
 
     failed = []
+    ignored = []
     for testCase in testCases:
         sys.stdout.write((testCase.sourceFile + ":").ljust(60))
         try:
@@ -178,13 +186,21 @@ if __name__ == "__main__":
         except TestFailException:
             # We already printed "FAIL"
             failed.append(testCase.sourceFile)
+        except TestIgnoredException:
+            ignored.append(testCase.sourceFile)
         except Exception as e:
             print("FAIL (Exception)")
             print(e)
             failed.append(testCase.sourceFile)
 
+    returnCode = 0
     if len(failed) > 0:
-        print("Summary:", len(failed), "of", len(testCases), "tests", "failed:", ", ".join(failed))
-        sys.exit(1)
+        print(len(failed), "of", len(testCases) - len(ignored), "tests", "failed:", ", ".join(failed))
+        returnCode = 1
     else:
-        print("All tests passed.")
+        print(len(testCases) - len(ignored), "tests passed.")
+
+    if len(ignored) > 0:
+        print("Ignored", len(ignored), "tests:", ", ".join(ignored))
+
+    sys.exit(returnCode)
