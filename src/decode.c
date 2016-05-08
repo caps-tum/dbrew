@@ -720,18 +720,22 @@ DBB* dbrew_decode(Rewriter* r, uint64_t f)
         case 0x54: case 0x55: case 0x56: case 0x57:
             // push
             reg = Reg_AX + (opc - 0x50);
+            vt = VT_64;
             if (hasRex && (rex & REX_MASK_B)) reg += 8;
+            if (has66) vt = VT_16;
             addUnaryOp(r, a, (uint64_t)(fp + off),
-                       IT_PUSH, getRegOp(VT_64, reg));
+                       IT_PUSH, getRegOp(vt, reg));
             break;
 
         case 0x58: case 0x59: case 0x5A: case 0x5B:
         case 0x5C: case 0x5D: case 0x5E: case 0x5F:
             // pop
             reg = Reg_AX + (opc - 0x58);
+            vt = VT_64;
             if (hasRex && (rex & REX_MASK_B)) reg += 8;
+            if (has66) vt = VT_16;
             addUnaryOp(r, a, (uint64_t)(fp + off),
-                       IT_POP, getRegOp(VT_64, reg));
+                       IT_POP, getRegOp(vt, reg));
             break;
 
         case 0x63:

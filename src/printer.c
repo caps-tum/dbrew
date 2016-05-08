@@ -31,6 +31,29 @@
 const char* regName(Reg r, OpType t)
 {
     switch(t) {
+    case OT_Reg16:
+        switch(r) {
+        case Reg_AX: return "ax";
+        case Reg_BX: return "bx";
+        case Reg_CX: return "cx";
+        case Reg_DX: return "dx";
+        case Reg_DI: return "di";
+        case Reg_SI: return "si";
+        case Reg_BP: return "bp";
+        case Reg_SP: return "sp";
+        case Reg_8:  return "r8w";
+        case Reg_9:  return "r9w";
+        case Reg_10: return "r10w";
+        case Reg_11: return "r11w";
+        case Reg_12: return "r12w";
+        case Reg_13: return "r13w";
+        case Reg_14: return "r14w";
+        case Reg_15: return "r15w";
+        case Reg_IP: return "ip";
+        default: assert(0);
+        }
+        break;
+
     case OT_Reg32:
         switch(r) {
         case Reg_AX: return "eax";
@@ -167,6 +190,7 @@ char* op2string(Operand* o, ValType t, FunctionConfig* fc)
     uint64_t val;
 
     switch(o->type) {
+    case OT_Reg16:
     case OT_Reg32:
     case OT_Reg64:
     case OT_Reg128:

@@ -1,0 +1,3 @@
+BB f1 (2 instructions):
+                  f1:  66 58                 pop     %ax
+                f1+2:  c3                    ret    

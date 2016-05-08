@@ -1,0 +1,3 @@
+BB f1 (2 instructions):
+                  f1:  66 41 52              push    %r10w
+                f1+3:  c3                    ret    
