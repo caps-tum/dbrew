@@ -502,9 +502,9 @@ DBB* dbrew_decode(Rewriter* r, uint64_t f)
 
             case 0x7E:
                 assert(has66);
-                // movd/q xmm,r/m 32/64 (RM)
+                // movd/q xmm,r/m 32/64 (MR)
                 vt = (rex & REX_MASK_W) ? VT_64 : VT_32;
-                off += parseModRM(fp+off, rex, segOv, 1, 0, &o2, &o1, 0);
+                off += parseModRM(fp+off, rex, segOv, 0, 1, &o1, &o2, 0);
                 opOverwriteType(&o1, vt);
                 opOverwriteType(&o2, vt);
                 ii = addBinaryOp(r, a, (uint64_t)(fp + off),
