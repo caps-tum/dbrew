@@ -3,11 +3,11 @@
     .globl  f1
     .type   f1, @function
 f1:
+    mov rax, 0xffffffffff123231
+    add rax, rdi
+    js 1f
     xor eax, eax
-    test esi, esi
-    jz 1f
     ret
 1:
-    inc eax
+    mov eax, 1
     ret
-.att_syntax noprefix

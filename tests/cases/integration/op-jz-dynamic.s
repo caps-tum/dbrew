@@ -1,12 +1,12 @@
-// RUN: %s --var 0 1
+.intel_syntax noprefix
     .text
     .globl  f1
     .type   f1, @function
 f1:
-    test %rdi, %rdi
+    xor eax, eax
+    test esi, esi
     jz 1f
-    xor %eax, %eax
     ret
 1:
-    mov $1, %eax
+    inc eax
     ret
