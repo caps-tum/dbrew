@@ -70,13 +70,14 @@ class TestCase:
     def compile(self):
         if self.status != TestCase.WAITING: return
 
-        compileArgs = self.getProperty("compile", "{cc} -o {outfile} {infile} {driver}").format(**{
+        compileArgs = self.getProperty("compile", "{cc} {ccflags} -o {outfile} {infile} {driver}").format(**{
             # At the time of writing (May 2016), Clang refuses to emit near
             # jumps as GNU AS does. Therefore, the CC env variable is not
             # respected currently. Once these issues have been resolved, we can
             # also use Clang.
             "cc": "cc",
             # "cc": os.environ["CC"] if "CC" in os.environ else "cc",
+            "ccflags": self.getProperty("ccflags", ""),
             "outfile": self.outFile,
             "infile": self.sourceFile,
             "driver": self.driver
