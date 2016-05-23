@@ -146,9 +146,9 @@ void freeRewriter(Rewriter* r)
     freeEmuState(r);
     if (r->cs)
         freeCodeStorage(r->cs);
-    free(r);
-
     expr_freePool(r->ePool);
+
+    free(r);
 }
 
 
