@@ -1,3 +1,4 @@
-BB f1 (2 instructions):
+BB f1 (3 instructions):
                   f1:  c9                    leave  
-                f1+1:  c3                    ret    
+                f1+1:  66 c9                 leavew 
+                f1+3:  c3                    ret    

@@ -1501,8 +1501,10 @@ void captureRet(Rewriter* r, Instr* orig, EmuState* es)
 static
 void processPassThrough(Instr* i, EmuState* es)
 {
-    assert(i->ptLen >0);
-    if (i->ptSChange == SC_None) return;
+    assert(i->ptLen > 0);
+
+    if (!opIsGPReg(&(i->dst)))
+        return;
 
     switch(i->dst.type) {
     case OT_Reg32:
@@ -1611,11 +1613,6 @@ uint64_t emulateInstr(Rewriter* r, EmuState* es, Instr* instr)
     CaptureState cs;
     ValType vt;
 
-    if (instr->ptLen > 0) {
-        // memory addressing in captured instructions depends on emu state
-        capturePassThrough(r, instr, es);
-        return 0;
-    }
 
     switch(instr->type) {
 
@@ -2219,8 +2216,7 @@ uint64_t emulateInstr(Rewriter* r, EmuState* es, Instr* instr)
             switch (instr->type) {
             case IT_SHL: v1.val = (uint8_t) (v1.val << (v2.val & 7)); break;
             case IT_SHR: v1.val = (uint8_t) (v1.val >> (v2.val & 7)); break;
-            case IT_SAR:
-                v1.val = (uint8_t) ((int8_t)v1.val >> (v2.val & 7)); break;
+            case IT_SAR: v1.val = (uint8_t) ((int8_t)v1.val >> (v2.val & 7)); break;
             default: assert(0);
             }
             break;
@@ -2229,8 +2225,7 @@ uint64_t emulateInstr(Rewriter* r, EmuState* es, Instr* instr)
             switch (instr->type) {
             case IT_SHL: v1.val = (uint16_t) (v1.val << (v2.val & 15)); break;
             case IT_SHR: v1.val = (uint16_t) (v1.val >> (v2.val & 15)); break;
-            case IT_SAR:
-                v1.val = (uint16_t) ((int16_t)v1.val >> (v2.val & 15)); break;
+            case IT_SAR: v1.val = (uint16_t) ((int16_t)v1.val >> (v2.val & 15)); break;
             default: assert(0);
             }
             break;
@@ -2239,8 +2234,7 @@ uint64_t emulateInstr(Rewriter* r, EmuState* es, Instr* instr)
             switch (instr->type) {
             case IT_SHL: v1.val = (uint32_t) (v1.val << (v2.val & 31)); break;
             case IT_SHR: v1.val = (uint32_t) (v1.val >> (v2.val & 31)); break;
-            case IT_SAR:
-                v1.val = (uint32_t) ((int32_t)v1.val >> (v2.val & 31)); break;
+            case IT_SAR: v1.val = (uint32_t) ((int32_t)v1.val >> (v2.val & 31)); break;
             default: assert(0);
             }
             break;
@@ -2329,7 +2323,13 @@ uint64_t emulateInstr(Rewriter* r, EmuState* es, Instr* instr)
         break;
 
 
-    default: assert(0);
+    default:
+        if (instr->ptLen > 0) {
+            // memory addressing in captured instructions depends on emu state
+            capturePassThrough(r, instr, es);
+            return 0;
+        }
+        assert(0);
     }
     return 0;
 }

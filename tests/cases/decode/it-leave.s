@@ -7,6 +7,6 @@
 f1:
     // LEAVE instructions, Intel Vol. 2A 3-483
     leave
-    // leavew // no need to implement 16-bit address-mode
+    leavew
 
     ret

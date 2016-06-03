@@ -274,9 +274,12 @@ char* op2string(Operand* o, ValType t, FunctionConfig* fc)
         assert(val < (1l<<8));
         switch(t) {
         case VT_None:
+        case VT_Implicit:
         case VT_8:
             break;
         case VT_16:
+            if (val > 0x7F) val += 0xFF00;
+            break;
         case VT_32:
             if (val > 0x7F) val += 0xFFFFFF00;
             break;
@@ -298,6 +301,7 @@ char* op2string(Operand* o, ValType t, FunctionConfig* fc)
         case VT_64:
             if (val > 0x7FFF) val += 0xFFFFFFFFFFFF0000;
             break;
+        case VT_8:
         case VT_16:
         case VT_None:
             break;
@@ -455,7 +459,6 @@ const char* instrName(InstrType it, int* pOpCount)
     case IT_MOVLPS:  n = "movlps";  opCount = 2; break;
     case IT_MOVHPD:  n = "movhpd";  opCount = 2; break;
     case IT_MOVHPS:  n = "movhps";  opCount = 2; break;
-
     case IT_ADDSS:   n = "addss";   opCount = 2; break;
     case IT_ADDSD:   n = "addsd";   opCount = 2; break;
     case IT_ADDPS:   n = "addps";   opCount = 2; break;

@@ -27,8 +27,8 @@ BB f1 (49 instructions):
               f1+103:  f3 0f 7f 02           movdqu  %xmm0,(%rdx)
               f1+107:  66 0f 6f 02           movdqa  (%rdx),%xmm0
               f1+111:  66 0f 7f 02           movdqa  %xmm0,(%rdx)
-              f1+115:  66 0f 6e 02           movd    (%rdx),%xmm0
-              f1+119:  66 0f 7e 02           movd    %xmm0,(%rdx)
+              f1+115:  66 0f 6e 02           movql   (%rdx),%xmm0
+              f1+119:  66 0f 7e 02           movql   %xmm0,(%rdx)
               f1+123:  66 44 0f 13 16        movlpd  %xmm10,(%rsi)
               f1+128:  66 0f 12 07           movlpd  (%rdi),%xmm0
               f1+132:  44 0f 13 16           movlps  %xmm10,(%rsi)

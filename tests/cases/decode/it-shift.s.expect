@@ -1,106 +1,106 @@
 BB f1 (109 instructions):
-                  f1:  d0 e0                 shl     %al
-                f1+2:  41 d0 e2              shl     %r10b
-                f1+5:  d0 20                 shlb    (%rax)
+                  f1:  d0 e0                 shl     $0x1,%al
+                f1+2:  41 d0 e2              shl     $0x1,%r10b
+                f1+5:  d0 20                 shlb    $0x1,(%rax)
                 f1+7:  d2 e0                 shl     %cl,%al
                 f1+9:  41 d2 e2              shl     %cl,%r10b
                f1+12:  d2 20                 shl     %cl,(%rax)
                f1+14:  c0 e0 05              shl     $0x5,%al
                f1+17:  41 c0 e2 05           shl     $0x5,%r10b
                f1+21:  c0 20 05              shlb    $0x5,(%rax)
-               f1+24:  66 d1 e0              shl     %ax
-               f1+27:  66 41 d1 e2           shl     %r10w
-               f1+31:  66 d1 20              shlw    (%rax)
+               f1+24:  66 d1 e0              shl     $0x1,%ax
+               f1+27:  66 41 d1 e2           shl     $0x1,%r10w
+               f1+31:  66 d1 20              shlw    $0x1,(%rax)
                f1+34:  66 d3 e0              shl     %cl,%ax
                f1+37:  66 41 d3 e2           shl     %cl,%r10w
                f1+41:  66 d3 20              shl     %cl,(%rax)
                f1+44:  66 c1 e0 05           shl     $0x5,%ax
                f1+48:  66 41 c1 e2 05        shl     $0x5,%r10w
                f1+53:  66 c1 20 05           shlw    $0x5,(%rax)
-               f1+57:  d1 e0                 shl     %eax
-               f1+59:  41 d1 e2              shl     %r10d
-               f1+62:  d1 20                 shll    (%rax)
+               f1+57:  d1 e0                 shl     $0x1,%eax
+               f1+59:  41 d1 e2              shl     $0x1,%r10d
+               f1+62:  d1 20                 shll    $0x1,(%rax)
                f1+64:  d3 e0                 shl     %cl,%eax
                f1+66:  41 d3 e2              shl     %cl,%r10d
                f1+69:  d3 20                 shl     %cl,(%rax)
                f1+71:  c1 e0 05              shl     $0x5,%eax
                f1+74:  41 c1 e2 05           shl     $0x5,%r10d
                f1+78:  c1 20 05              shll    $0x5,(%rax)
-               f1+81:  48 d1 e0              shl     %rax
-               f1+84:  49 d1 e2              shl     %r10
-               f1+87:  48 d1 20              shlq    (%rax)
+               f1+81:  48 d1 e0              shl     $0x1,%rax
+               f1+84:  49 d1 e2              shl     $0x1,%r10
+               f1+87:  48 d1 20              shlq    $0x1,(%rax)
                f1+90:  48 d3 e0              shl     %cl,%rax
                f1+93:  49 d3 e2              shl     %cl,%r10
                f1+96:  48 d3 20              shl     %cl,(%rax)
                f1+99:  48 c1 e0 05           shl     $0x5,%rax
               f1+103:  49 c1 e2 05           shl     $0x5,%r10
               f1+107:  48 c1 20 05           shlq    $0x5,(%rax)
-              f1+111:  d0 e8                 shr     %al
-              f1+113:  41 d0 ea              shr     %r10b
-              f1+116:  d0 28                 shrb    (%rax)
+              f1+111:  d0 e8                 shr     $0x1,%al
+              f1+113:  41 d0 ea              shr     $0x1,%r10b
+              f1+116:  d0 28                 shrb    $0x1,(%rax)
               f1+118:  d2 e8                 shr     %cl,%al
               f1+120:  41 d2 ea              shr     %cl,%r10b
               f1+123:  d2 28                 shr     %cl,(%rax)
               f1+125:  c0 e8 05              shr     $0x5,%al
               f1+128:  41 c0 ea 05           shr     $0x5,%r10b
               f1+132:  c0 28 05              shrb    $0x5,(%rax)
-              f1+135:  66 d1 e8              shr     %ax
-              f1+138:  66 41 d1 ea           shr     %r10w
-              f1+142:  66 d1 28              shrw    (%rax)
+              f1+135:  66 d1 e8              shr     $0x1,%ax
+              f1+138:  66 41 d1 ea           shr     $0x1,%r10w
+              f1+142:  66 d1 28              shrw    $0x1,(%rax)
               f1+145:  66 d3 e8              shr     %cl,%ax
               f1+148:  66 41 d3 ea           shr     %cl,%r10w
               f1+152:  66 d3 28              shr     %cl,(%rax)
               f1+155:  66 c1 e8 05           shr     $0x5,%ax
               f1+159:  66 41 c1 ea 05        shr     $0x5,%r10w
               f1+164:  66 c1 28 05           shrw    $0x5,(%rax)
-              f1+168:  d1 e8                 shr     %eax
-              f1+170:  41 d1 ea              shr     %r10d
-              f1+173:  d1 28                 shrl    (%rax)
+              f1+168:  d1 e8                 shr     $0x1,%eax
+              f1+170:  41 d1 ea              shr     $0x1,%r10d
+              f1+173:  d1 28                 shrl    $0x1,(%rax)
               f1+175:  d3 e8                 shr     %cl,%eax
               f1+177:  41 d3 ea              shr     %cl,%r10d
               f1+180:  d3 28                 shr     %cl,(%rax)
               f1+182:  c1 e8 05              shr     $0x5,%eax
               f1+185:  41 c1 ea 05           shr     $0x5,%r10d
               f1+189:  c1 28 05              shrl    $0x5,(%rax)
-              f1+192:  48 d1 e8              shr     %rax
-              f1+195:  49 d1 ea              shr     %r10
-              f1+198:  48 d1 28              shrq    (%rax)
+              f1+192:  48 d1 e8              shr     $0x1,%rax
+              f1+195:  49 d1 ea              shr     $0x1,%r10
+              f1+198:  48 d1 28              shrq    $0x1,(%rax)
               f1+201:  48 d3 e8              shr     %cl,%rax
               f1+204:  49 d3 ea              shr     %cl,%r10
               f1+207:  48 d3 28              shr     %cl,(%rax)
               f1+210:  48 c1 e8 05           shr     $0x5,%rax
               f1+214:  49 c1 ea 05           shr     $0x5,%r10
               f1+218:  48 c1 28 05           shrq    $0x5,(%rax)
-              f1+222:  d0 f8                 sar     %al
-              f1+224:  41 d0 fa              sar     %r10b
-              f1+227:  d0 38                 sarb    (%rax)
+              f1+222:  d0 f8                 sar     $0x1,%al
+              f1+224:  41 d0 fa              sar     $0x1,%r10b
+              f1+227:  d0 38                 sarb    $0x1,(%rax)
               f1+229:  d2 f8                 sar     %cl,%al
               f1+231:  41 d2 fa              sar     %cl,%r10b
               f1+234:  d2 38                 sar     %cl,(%rax)
               f1+236:  c0 f8 05              sar     $0x5,%al
               f1+239:  41 c0 fa 05           sar     $0x5,%r10b
               f1+243:  c0 38 05              sarb    $0x5,(%rax)
-              f1+246:  66 d1 f8              sar     %ax
-              f1+249:  66 41 d1 fa           sar     %r10w
-              f1+253:  66 d1 38              sarw    (%rax)
+              f1+246:  66 d1 f8              sar     $0x1,%ax
+              f1+249:  66 41 d1 fa           sar     $0x1,%r10w
+              f1+253:  66 d1 38              sarw    $0x1,(%rax)
               f1+256:  66 d3 f8              sar     %cl,%ax
               f1+259:  66 41 d3 fa           sar     %cl,%r10w
               f1+263:  66 d3 38              sar     %cl,(%rax)
               f1+266:  66 c1 f8 05           sar     $0x5,%ax
               f1+270:  66 41 c1 fa 05        sar     $0x5,%r10w
               f1+275:  66 c1 38 05           sarw    $0x5,(%rax)
-              f1+279:  d1 f8                 sar     %eax
-              f1+281:  41 d1 fa              sar     %r10d
-              f1+284:  d1 38                 sarl    (%rax)
+              f1+279:  d1 f8                 sar     $0x1,%eax
+              f1+281:  41 d1 fa              sar     $0x1,%r10d
+              f1+284:  d1 38                 sarl    $0x1,(%rax)
               f1+286:  d3 f8                 sar     %cl,%eax
               f1+288:  41 d3 fa              sar     %cl,%r10d
               f1+291:  d3 38                 sar     %cl,(%rax)
               f1+293:  c1 f8 05              sar     $0x5,%eax
               f1+296:  41 c1 fa 05           sar     $0x5,%r10d
               f1+300:  c1 38 05              sarl    $0x5,(%rax)
-              f1+303:  48 d1 f8              sar     %rax
-              f1+306:  49 d1 fa              sar     %r10
-              f1+309:  48 d1 38              sarq    (%rax)
+              f1+303:  48 d1 f8              sar     $0x1,%rax
+              f1+306:  49 d1 fa              sar     $0x1,%r10
+              f1+309:  48 d1 38              sarq    $0x1,(%rax)
               f1+312:  48 d3 f8              sar     %cl,%rax
               f1+315:  49 d3 fa              sar     %cl,%r10
               f1+318:  48 d3 38              sar     %cl,(%rax)

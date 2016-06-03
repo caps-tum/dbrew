@@ -385,7 +385,6 @@ void copyInstr(Instr* dst, Instr* src)
     if (src->ptLen > 0) {
         dst->ptPSet = src->ptPSet;
         dst->ptEnc  = src->ptEnc;
-        dst->ptSChange = src->ptSChange;
         for(int j=0; j < src->ptLen; j++)
             dst->ptOpc[j] = src->ptOpc[j];
     }
@@ -417,12 +416,12 @@ void initUnaryInstr(Instr* i, InstrType it, Operand* o)
 void initBinaryInstr(Instr* i, InstrType it, ValType vt,
                      Operand *o1, Operand *o2)
 {
-    if (vt != VT_None) {
+    if (vt != VT_None && vt != VT_Implicit) {
         // if we specify a value type, it must match destination
         assert(vt == opValType(o1));
         // if 2nd operand is other than immediate, types also must match
-        if (!opIsImm(o2))
-            assert(vt == opValType(o2));
+        // if (!opIsImm(o2) && it != IT_MOVSX)
+        //     assert(vt == opValType(o2));
     }
 
     initSimpleInstr(i, it);
@@ -443,13 +442,11 @@ void initTernaryInstr(Instr* i, InstrType it,
 }
 
 
-void attachPassthrough(Instr* i, PrefixSet set,
-                       OperandEncoding enc, StateChange sc,
-                       int b1, int b2, int b3)
+void
+attachPassthrough(Instr* i, PrefixSet set, OperandEncoding enc, int b1, int b2, int b3)
 {
     assert(i->ptLen == 0);
     i->ptEnc = enc;
-    i->ptSChange = sc;
     i->ptPSet = set;
     assert(b1 >= 0);
     i->ptLen++;

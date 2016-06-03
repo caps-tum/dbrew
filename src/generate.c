@@ -1317,99 +1317,98 @@ void generate(Rewriter* r, CBB* cbb)
 
         buf = reserveCodeStorage(r->cs, 15);
 
-        if (instr->ptLen > 0) {
-            used = genPassThrough(buf, instr);
-        }
-        else {
-            switch(instr->type) {
-            case IT_ADD:
-                used = genAdd(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_CLTQ:
-                used = genCltq(buf, instr->vtype);
-                break;
-            case IT_CQTO:
-                used = genCqto(buf, instr->vtype);
-                break;
-            case IT_CMP:
-                used = genCmp(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_DEC:
-                used = genDec(buf, &(instr->dst));
-                break;
-            case IT_IMUL:
-                used = genIMul(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_IDIV1:
-                used = genIDiv1(buf, &(instr->dst));
-                break;
-            case IT_INC:
-                used = genInc(buf, &(instr->dst));
-                break;
-            case IT_XOR:
-                used = genXor(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_OR:
-                used = genOr(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_AND:
-                used = genAnd(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_SHL:
-                used = genShl(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_SHR:
-                used = genShr(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_SAR:
-                used = genSar(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_LEA:
-                used = genLea(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_MOV:
-            case IT_MOVSX: // converting move
-                used = genMov(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_CMOVO:
-            case IT_CMOVNO:
-            case IT_CMOVC:
-            case IT_CMOVNC:
-            case IT_CMOVZ:
-            case IT_CMOVNZ:
-            case IT_CMOVBE:
-            case IT_CMOVA:
-            case IT_CMOVS:
-            case IT_CMOVNS:
-            case IT_CMOVP:
-            case IT_CMOVNP:
-            case IT_CMOVL:
-            case IT_CMOVGE:
-            case IT_CMOVLE:
-            case IT_CMOVG:
-                used = genCMov(buf, instr->type, &(instr->src), &(instr->dst));
-                break;
-            case IT_POP:
-                used = genPop(buf, &(instr->dst));
-                break;
-            case IT_PUSH:
-                used = genPush(buf, &(instr->dst));
-                break;
-            case IT_RET:
-                used = genRet(buf);
-                break;
-            case IT_SUB:
-                used = genSub(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_TEST:
-                used = genTest(buf, &(instr->src), &(instr->dst));
-                break;
-            case IT_HINT_CALL:
-            case IT_HINT_RET:
-                used = 0;
-                break;
-            default: assert(0);
-            }
+        switch(instr->type) {
+        case IT_ADD:
+            used = genAdd(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_CLTQ:
+            used = genCltq(buf, instr->vtype);
+            break;
+        case IT_CQTO:
+            used = genCqto(buf, instr->vtype);
+            break;
+        case IT_CMP:
+            used = genCmp(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_DEC:
+            used = genDec(buf, &(instr->dst));
+            break;
+        case IT_IMUL:
+            used = genIMul(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_IDIV1:
+            used = genIDiv1(buf, &(instr->dst));
+            break;
+        case IT_INC:
+            used = genInc(buf, &(instr->dst));
+            break;
+        case IT_XOR:
+            used = genXor(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_OR:
+            used = genOr(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_AND:
+            used = genAnd(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_SHL:
+            used = genShl(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_SHR:
+            used = genShr(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_SAR:
+            used = genSar(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_LEA:
+            used = genLea(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_MOV:
+        case IT_MOVSX: // converting move
+            used = genMov(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_CMOVO:
+        case IT_CMOVNO:
+        case IT_CMOVC:
+        case IT_CMOVNC:
+        case IT_CMOVZ:
+        case IT_CMOVNZ:
+        case IT_CMOVBE:
+        case IT_CMOVA:
+        case IT_CMOVS:
+        case IT_CMOVNS:
+        case IT_CMOVP:
+        case IT_CMOVNP:
+        case IT_CMOVL:
+        case IT_CMOVGE:
+        case IT_CMOVLE:
+        case IT_CMOVG:
+            used = genCMov(buf, instr->type, &(instr->src), &(instr->dst));
+            break;
+        case IT_POP:
+            used = genPop(buf, &(instr->dst));
+            break;
+        case IT_PUSH:
+            used = genPush(buf, &(instr->dst));
+            break;
+        case IT_RET:
+            used = genRet(buf);
+            break;
+        case IT_SUB:
+            used = genSub(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_TEST:
+            used = genTest(buf, &(instr->src), &(instr->dst));
+            break;
+        case IT_HINT_CALL:
+        case IT_HINT_RET:
+            used = 0;
+            break;
+        default:
+            if (instr->ptLen > 0)
+                used = genPassThrough(buf, instr);
+            else
+                assert(0);
         }
         assert(used < 15);
 

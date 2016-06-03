@@ -73,8 +73,10 @@ typedef enum _InstrType {
     // SSE Move
     IT_MOVSS, IT_MOVSD, IT_MOVUPS, IT_MOVUPD, IT_MOVAPS, IT_MOVAPD,
     IT_MOVDQU, IT_MOVDQA, IT_MOVLPD, IT_MOVLPS, IT_MOVHPD, IT_MOVHPS,
+
     // SSE Unpack
     IT_UNPCKLPS, IT_UNPCKLPD, IT_UNPCKHPS, IT_UNPCKHPD,
+
     // SSE FP arithmetic
     IT_ADDSS, IT_ADDSD, IT_ADDPS, IT_ADDPD,
     IT_SUBSS, IT_SUBSD, IT_SUBPS, IT_SUBPD,
@@ -91,6 +93,7 @@ typedef enum _InstrType {
     IT_HSUBPS, IT_HSUBPD,
     IT_RCPSS, IT_RCPPS,
     IT_RSQRTSS, IT_RSQRTPS,
+
     // SSE Integer operations
     IT_PCMPEQB, IT_PCMPEQW, IT_PCMPEQD,
     IT_PMINUB, IT_PMOVMSKB, IT_PXOR, IT_PADDQ,
@@ -138,13 +141,82 @@ typedef struct _Operand {
 typedef enum _OperandEncoding {
     OE_Invalid = 0,
     OE_None,
-    OE_MR,  // 2 operands, ModRM byte, dest is reg or memory
-    OE_RM,  // 2 operands, ModRM byte, src  is reg or memory
-    OE_RMI  // 3 operands, ModRM byte, src  is reg or memory, Immediate
+    /**
+     * \brief M encoding: 1 operand,  ModRM byte + digit
+     **/
+    OE_M,
+    /**
+     * \brief M1 encoding: 2 operands, ModRM byte + digit, Constant immediate 1
+     **/
+    OE_M1,
+    /**
+     * \brief MI encoding: 2 operands, ModRM byte + digit, Immediate
+     **/
+    OE_MI,
+    /**
+     * \brief MC encoding: 2 operands, ModRM byte + digit, Register RCX/ECX/CX/CL
+     **/
+    OE_MC,
+    /**
+     * \brief MR encoding: 2 operands, ModRM byte, dest is reg or memory
+     **/
+    OE_MR,
+    /**
+     * \brief MRI encoding: 3 operands, ModRM byte, dest is reg or memory, Immediate
+     **/
+    OE_MRI,
+    /**
+     * \brief MRC encoding: 3 operands, ModRM byte, dest is reg or memory, Implicit register CL
+     **/
+    OE_MRC,
+    /**
+     * \brief RM encoding: 2 operands, ModRM byte, src  is reg or memory
+     **/
+    OE_RM,
+    /**
+     * \brief RMI encoding: 3 operands, ModRM byte, src  is reg or memory, Immediate
+     **/
+    OE_RMI,
+    /**
+     * \brief RM0 encoding: 3 operands, ModRM byte, src  is reg or memory, Implicit register XMM0
+     **/
+    OE_RM0,
+    /**
+     * \brief O encoding: 1 operand,  opcode and register combined (may include rex prefix)
+     **/
+    OE_O,
+    /**
+     * \brief OI encoding: 2 operands, opcode and register combined (may include rex prefix), Immediate
+     **/
+    OE_OI,
+    /**
+     * \brief I encoding: 1 operand,  Immediate only
+     **/
+    OE_I,
+    /**
+     * \brief I encoding: 2 operands, Immediate, Register RAX/EAX/AX/AL
+     **/
+    OE_IA,
+    /**
+     * \brief D encoding: 1 operand,  Offset
+     **/
+    OE_D,
+    /**
+     * \brief FD encoding: 1 operand,  Move from Offset
+     **/
+    OE_FD,
+    /**
+     * \brief TD encoding: 1 operand,  Move to Offset
+     **/
+    OE_TD,
+    /**
+     * \brief NP encoding: 0 operands
+     **/
+    OE_NP,
 } OperandEncoding;
 
 typedef enum _PrefixSet {
-    PS_No = 0,
+    PS_None = 0,
     PS_66 = 2,
     PS_F2 = 4,
     PS_F3 = 8,
@@ -177,7 +249,6 @@ typedef struct _Instr {
     PrefixSet ptPSet;
     uint8_t ptOpc[3];
     OperandEncoding ptEnc;
-    StateChange ptSChange;
 
     ValType vtype; // without explicit operands or all operands of same type
     OperandForm form;
@@ -225,9 +296,7 @@ void initTernaryInstr(Instr* i, InstrType it,
                       Operand *o1, Operand *o2, Operand* o3);
 
 
-void attachPassthrough(Instr* i, PrefixSet set,
-                       OperandEncoding enc, StateChange sc,
-                       int b1, int b2, int b3);
+void attachPassthrough(Instr*, PrefixSet, OperandEncoding, int, int, int);
 
 
 #endif // INSTR_H
