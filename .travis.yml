@@ -1,18 +1,59 @@
-language: cpp
 dist: trusty
+language: cpp
+sudo: true
 
-compiler:
-    - clang
-    - gcc
+addons:
+  apt:
+    packages:
+    - python3
 
-os:
-    - linux
 
-# install "python3" used in the test script
-before_install:
-    - sudo apt-get install python3
+matrix:
+  include:
+    - compiler: gcc
+      env: COMPILERC=gcc-4.9
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-4.9
+    - compiler: gcc
+      env: COMPILERC=gcc-5
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-5
+    - compiler: gcc
+      env: COMPILERC=gcc-6
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-6
+    - compiler: clang
+      env:
+          - COMPILERC=clang
+          - CLANGV=3.6.2
+    - compiler: clang
+      env:
+          - COMPILERC=clang
+          - CLANGV=3.7.1
+    - compiler: clang
+      env:
+          - COMPILERC=clang
+          - CLANGV=3.8.0
 
 # build and test
 script:
+    - mkdir $HOME/clang+llvm
+    - export PATH=$HOME/clang+llvm/bin:$PATH
+    - if [ -n "$CLANGV" ]; then wget http://llvm.org/releases/$CLANGV/clang+llvm-$CLANGV-x86_64-linux-gnu-ubuntu-14.04.tar.xz -O $HOME/clang+llvm.tar.xz; fi
+    - if [ -n "$CLANGV" ]; then tar xf $HOME/clang+llvm.tar.xz -C $HOME/clang+llvm --strip-components 1; fi
+    - export CC=$COMPILERC
+    - $CC --version
     - make CI=1
     - make test
