@@ -1,59 +1,110 @@
-dist: trusty
 language: cpp
-sudo: true
+sudo: false
 
-addons:
-  apt:
-    packages:
-    - python3
-
-
+# TODO: When LLVM packages are available again, use these!
 matrix:
   include:
     - compiler: gcc
-      env: COMPILERC=gcc-4.9
+      env:
+        - COMPILERC=gcc-4.9
+        - COMPILERCXX=g++-4.9
+        - LLVM_CONFIG=llvm-config
+        - CLANGV=3.7.1
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - gcc-4.9
+            - g++-4.9
+            - libstdc++6-4.9-dbg
+            - python3
     - compiler: gcc
-      env: COMPILERC=gcc-5
+      env:
+        - COMPILERC=gcc-5
+        - COMPILERCXX=g++-5
+        - LLVM_CONFIG=llvm-config
+        - CLANGV=3.7.1
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - gcc-5
+            - g++-5
+            - libstdc++6-4.9-dbg
+            - python3
     - compiler: gcc
-      env: COMPILERC=gcc-6
+      env:
+        - COMPILERC=gcc-6
+        - COMPILERCXX=g++-6
+        - LLVM_CONFIG=llvm-config
+        - CLANGV=3.7.1
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - gcc-6
+            - g++-6
+            - python3
     - compiler: clang
       env:
-          - COMPILERC=clang
-          - CLANGV=3.6.2
+        - COMPILERC=clang
+        - COMPILERCXX=clang++
+        - LLVM_CONFIG=llvm-config
+        - CLANGV=3.6.2
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - libstdc++6-4.9-dbg
+            - python3
     - compiler: clang
       env:
-          - COMPILERC=clang
-          - CLANGV=3.7.1
+        - COMPILERC=clang
+        - COMPILERCXX=clang++
+        - LLVM_CONFIG=llvm-config
+        - CLANGV=3.7.1
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - libstdc++6-4.9-dbg
+            - python3
     - compiler: clang
       env:
-          - COMPILERC=clang
-          - CLANGV=3.8.0
+        - COMPILERC=clang
+        - COMPILERCXX=clang++
+        - LLVM_CONFIG=llvm-config
+        - CLANGV=3.8.0
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - libstdc++6-4.9-dbg
+            - python3
 
-# build and test
+# TODO: Eventually cache clang
+install:
+  - mkdir $HOME/clang+llvm
+  - export PATH=$HOME/clang+llvm/bin:$PATH
+  - export PATHLD_LIBRARY_PATH=$HOME/clang+llvm/lib:$LD_LIBRARY_PATH
+  - wget http://llvm.org/releases/$CLANGV/clang+llvm-$CLANGV-x86_64-linux-gnu-ubuntu-14.04.tar.xz -O $HOME/clang+llvm.tar.xz;
+  - tar xf $HOME/clang+llvm.tar.xz -C $HOME/clang+llvm --strip-components 1
+  - export CC=$COMPILERC
+  - export CXX=$COMPILERCXX
+  - $CC --version
+  - $CXX --version
+  - $LLVM_CONFIG --version
+  - $LLVM_CONFIG --cflags
+  - $LLVM_CONFIG --cxxflags
+  - $LLVM_CONFIG --ldflags
+  - $LLVM_CONFIG --libs
+  - $LLVM_CONFIG --components
+
 script:
-    - mkdir $HOME/clang+llvm
-    - export PATH=$HOME/clang+llvm/bin:$PATH
-    - if [ -n "$CLANGV" ]; then wget http://llvm.org/releases/$CLANGV/clang+llvm-$CLANGV-x86_64-linux-gnu-ubuntu-14.04.tar.xz -O $HOME/clang+llvm.tar.xz; fi
-    - if [ -n "$CLANGV" ]; then tar xf $HOME/clang+llvm.tar.xz -C $HOME/clang+llvm --strip-components 1; fi
-    - export CC=$COMPILERC
-    - $CC --version
-    - make CI=1
-    - make test
+  - make all test CI=1

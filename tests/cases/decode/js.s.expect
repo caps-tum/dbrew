@@ -1,2 +1,2 @@
 BB f1 (1 instructions):
-                  f1:  0f 88 00 00 00 00     js      $f1+6
+                  f1:  0f 88 fa ff ff ff     js      $f1
