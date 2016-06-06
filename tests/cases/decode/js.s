@@ -6,4 +6,4 @@
     .globl  f1
     .type   f1, @function
 f1:
-    js f2
+    js f1
