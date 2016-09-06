@@ -2,12 +2,13 @@ dist: trusty
 language: cpp
 sudo: true
 
+# package required for every entry in the compiler matrix
 addons:
   apt:
     packages:
     - python3
 
-
+# compiler matrix
 matrix:
   include:
     - compiler: gcc
@@ -45,7 +46,11 @@ matrix:
     - compiler: clang
       env:
           - COMPILERC=clang
-          - CLANGV=3.8.0
+          - CLANGV=3.8.1
+    - compiler: clang
+      env:
+          - COMPILERC=clang
+          - CLANGV=3.9.0
 
 # build and test
 script:
