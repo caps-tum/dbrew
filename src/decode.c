@@ -308,6 +308,7 @@ void parseModRM(DContext* cxt, ValType vt, RegTypes rts,
         sib = cxt->f[cxt->off++];
         scale = 1 << ((sib & 192) >> 6);
         idx   = (sib & 56) >> 3;
+        if (cxt->rex & REX_MASK_X) idx += 8;
         base  = sib & 7;
         if ((base == 5) && (mod == 0))
             hasDisp32 = 1;
@@ -360,7 +361,6 @@ void parseModRM(DContext* cxt, ValType vt, RegTypes rts,
         o1->scale = 0; // index register not used: set scale to 0
     }
     else {
-        if (cxt->rex & REX_MASK_X) idx += 8;
         o1->ireg = getReg(RT_GP64, (RegIndex) idx);
     }
 
