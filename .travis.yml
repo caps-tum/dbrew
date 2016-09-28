@@ -60,5 +60,5 @@ script:
     - if [ -n "$CLANGV" ]; then tar xf $HOME/clang+llvm.tar.xz -C $HOME/clang+llvm --strip-components 1; fi
     - export CC=$COMPILERC
     - $CC --version
-    - make CI=1
-    - make test
+    - make CI=1 CC=$COMPILERC
+    - make test CC=$COMPILERC
