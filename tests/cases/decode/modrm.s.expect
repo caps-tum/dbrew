@@ -1,4 +1,4 @@
-BB f1 (99 instructions):
+BB f1 (100 instructions):
                   f1:  48 ff c0              inc     %rax
                 f1+3:  48 ff c5              inc     %rbp
                 f1+6:  49 ff c1              inc     %r9
@@ -123,4 +123,6 @@ BB f1 (99 instructions):
               f1+517:  4d 8b 0c 24           mov     (%r12),%r9
               f1+521:  4d 8b 4d 00           mov     (%r13),%r9
               f1+525:  4d 8b 0e              mov     (%r14),%r9
-              f1+528:  c3                    ret    
+              f1+528:  4f 8d 8c e1 40 fd ff  lea     -0x2c0(%r9,%r12,8),%r9
+              f1+535:  ff                  
+              f1+536:  c3                    ret    

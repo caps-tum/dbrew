@@ -108,5 +108,7 @@ f1:
     mov r9, qword ptr [r13]
     mov r9, qword ptr [r14]
 
+    lea r9, [r9 + 8 * r12 - 704]
+
     ret
 
