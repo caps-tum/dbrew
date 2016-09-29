@@ -1081,7 +1081,7 @@ void decode0F_17(DContext* c)
         c->it = IT_MOVHPS; break;
     default: markDecodeError(c, false, ET_BadPrefix); return;
     }
-    parseModRM(c, VT_64, RTS_VX_VX, &c->o1, &c->o2, 0);
+    parseModRM(c, VT_128, RTS_VX_VX, &c->o1, &c->o2, 0);
     c->ii = addBinaryOp(c->r, c, c->it, VT_Implicit, &c->o1, &c->o2);
     attachPassthrough(c->ii, VEX_No, c->ps, OE_MR, SC_None, 0x0F, 0x17, -1);
 }
