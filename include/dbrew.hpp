@@ -37,33 +37,36 @@
 
 namespace dbrew {
 
+// Generic template. Should never be instantiated.
+template <typename T, typename enable = void> struct rewriter;
+
+// specialization with T == function pointer && T != member function pointer
 template <typename T>
-struct rewriter {
-    Rewriter* _rewriter;
-    // TODO add check if T is a callable
+struct rewriter<T, typename std::enable_if<std::is_function<typename std::remove_pointer<T>::type>::value>::type> {
+	Rewriter *_rewriter;
 
-    // for T == function pointer
-    rewriter(T func) {
-        // when a function is passed to a function it is automatically converted
-        // to a function pointer, but std::function expects a function type, not
-        // a function pointer
-        using function_type = typename std::remove_pointer<T>::type;
-        auto stdfunc = std::function<function_type>(func);
-        init(stdfunc, (uint64_t)func);
-    }
+	rewriter(T func) {
+		// when a function is passed to a function it is automatically converted
+		// to a function pointer, but std::function expects a function type, not
+		// a function pointer
+		using function_type = typename std::remove_pointer<T>::type;
+		auto stdfunc = std::function<function_type>(func);
+		init(stdfunc, (uint64_t)func);
+	}
 
-    template <typename R, typename ...Args>
-    void init(std::function<R(Args...)> stdfunc, uint64_t ptr) {
-        _rewriter = dbrew_new();
-        dbrew_set_function(_rewriter, ptr);
+	template <typename R, typename... Args> void init(std::function<R(Args...)> stdfunc, uint64_t ptr) {
+		// FIXME: generate ptr from stdfunc
+		_rewriter = dbrew_new();
+		dbrew_set_function(_rewriter, ptr);
 
-        // set the number of parameters
-        dbrew_config_parcount(_rewriter, sizeof...(Args));
-//        foo_t f = (foo_t) dbrew_rewrite(_rewriter, 2, 3);
-    }
-
+		// set the number of parameters
+		dbrew_config_parcount(_rewriter, sizeof...(Args));
+		//        foo_t f = (foo_t) dbrew_rewrite(_rewriter, 2, 3);
+	}
 };
 
+// TODO specialization for function pointer
+template <typename T> struct rewriter<T, typename std::enable_if<std::is_member_function_pointer<T>::value>::type>;
 }
 
 #endif // DBREW_HPP
