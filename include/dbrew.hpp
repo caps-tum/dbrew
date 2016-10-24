@@ -44,8 +44,9 @@ template <typename T, typename enable = void> struct rewriter;
 template <typename T>
 struct rewriter<T, typename std::enable_if<std::is_function<typename std::remove_pointer<T>::type>::value>::type> {
 	Rewriter *_rewriter;
+	T _func;
 
-	rewriter(T func) {
+	rewriter(T func) : _rewriter(dbrew_new()), _func(func) {
 		// when a function is passed to a function it is automatically converted
 		// to a function pointer, but std::function expects a function type, not
 		// a function pointer
@@ -54,18 +55,32 @@ struct rewriter<T, typename std::enable_if<std::is_function<typename std::remove
 		init(stdfunc, (uint64_t)func);
 	}
 
+	~rewriter() { dbrew_free(_rewriter); }
+
 	template <typename R, typename... Args> void init(std::function<R(Args...)> stdfunc, uint64_t ptr) {
 		// FIXME: generate ptr from stdfunc
-		_rewriter = dbrew_new();
 		dbrew_set_function(_rewriter, ptr);
 
 		// set the number of parameters
 		dbrew_config_parcount(_rewriter, sizeof...(Args));
-		//        foo_t f = (foo_t) dbrew_rewrite(_rewriter, 2, 3);
+		// TODO loop over all parameters and handle special cases like references
 	}
+
+	// TODO specialize for A == pointer ... I guess, check dbrew docu
+	template <typename A> rewriter<T> bind(size_t pos, const A &val) {
+		// TODO add assert for pos
+		dbrew_config_staticpar(_rewriter, pos);
+
+		// FIXME magic numbers!
+		T f = (T)dbrew_rewrite(_rewriter, 1, 0);
+		return rewriter<T>(f);
+	}
+
+	// caller for the function
+	template <typename... Args> auto operator()(Args... a) { return _func(a...); }
 };
 
-// TODO specialization for function pointer
+// TODO specialization for member function pointer
 template <typename T> struct rewriter<T, typename std::enable_if<std::is_member_function_pointer<T>::value>::type>;
 }
 

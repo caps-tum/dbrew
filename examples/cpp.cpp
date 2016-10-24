@@ -3,27 +3,19 @@
 
 #include "dbrew.hpp"
 
+#include <iostream>
+
 int foo(int i, int j) {
-  if (i == 5) return 0;
-  return i+j;
+	if (i == 5) return 0;
+	return i + j;
 }
 
 typedef int (*foo_t)(int, int);
 
-/*int main(int argc, char* argv[])
-{
-  Rewriter* r = dbrew_new();
-  dbrew_verbose(r, true, true, true);
-  dbrew_set_function(r, (uint64_t) foo);
-  dbrew_config_staticpar(r, 0);
-  dbrew_config_parcount(r, 2);
-  foo_t f = (foo_t) dbrew_rewrite(r, 2, 3);
-  return f(2, 3);
-}*/
-
-
-
-int main (int argc, char* argv[]) {
-    dbrew::rewriter<foo_t> a(foo);
-    return 0;
+int main(int argc, char *argv[]) {
+	dbrew::rewriter<foo_t> a(foo);
+	std::cout << a(1, 2) << std::endl; // 3
+	dbrew::rewriter<foo_t> b = a.bind(0, 1);
+	std::cout << b(2, 2) << std::endl; // 3 as well
+	return 0;
 }
