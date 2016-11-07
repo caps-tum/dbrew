@@ -975,11 +975,18 @@ void getStackValue(EmuState* es, EmuValue* v, EmuValue* off)
 static
 void setStackValue(EmuState* es, EmuValue* v, EmuValue* off)
 {
+    uint8_t*  a8;
     uint32_t* a32;
     uint64_t* a64;
     int i, count;
 
     switch(v->type) {
+    case VT_8:
+        a8 = (uint8_t*) (es->stack + off->val);
+        *a8 = (uint8_t) v->val;
+        count = 1;
+        break;
+
     case VT_32:
         a32 = (uint32_t*) (es->stack + off->val);
         *a32 = (uint32_t) v->val;
@@ -2446,6 +2453,17 @@ void emulateInstr(RContext* c)
 
     case IT_PUSH:
         switch(instr->dst.type) {
+        case OT_Ind8:
+        case OT_Reg8:
+        case OT_Imm8:
+            es->reg[RI_SP] -= 1;
+            addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
+            getOpValue(&v1, es, &(instr->dst));
+            setMemValue(&v1, &addr, es, VT_8, 1);
+            if (!msIsStatic(v1.state))
+                capture(c, instr);
+            break;
+
         case OT_Ind32:
         case OT_Reg32:
         case OT_Imm32:
