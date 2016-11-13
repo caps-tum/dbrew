@@ -51,14 +51,26 @@ matrix:
       env:
           - COMPILERC=clang
           - CLANGV=3.9.0
+          - RUNCLANGTIDY=TRUE
 
-# build and test
-script:
+# install clang, clang-tidy, bear
+before_install:
     - mkdir $HOME/clang+llvm
     - export PATH=$HOME/clang+llvm/bin:$PATH
     - if [ -n "$CLANGV" ]; then wget http://llvm.org/releases/$CLANGV/clang+llvm-$CLANGV-x86_64-linux-gnu-ubuntu-14.04.tar.xz -O $HOME/clang+llvm.tar.xz; fi
     - if [ -n "$CLANGV" ]; then tar xf $HOME/clang+llvm.tar.xz -C $HOME/clang+llvm --strip-components 1; fi
-    - export CC=$COMPILERC
-    - $CC --version
+    - if [ -n "$RUNCLANGTIDY" ]; then git clone https://github.com/rizsotto/Bear.git; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then cd Bear; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then cmake .; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then make all; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then sudo make install; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then cd ..; fi
+
+# build and test
+script:
+    - $COMPILERC --version
     - make CI=1 CC=$COMPILERC
     - make test CC=$COMPILERC
+    - if [ -n "$RUNCLANGTIDY" ]; then make clean; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then bear make; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then git ls-files '*.c' | xargs -P 1 -I{} clang-tidy -header-filter=.* -p . {}; fi
