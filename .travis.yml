@@ -72,5 +72,5 @@ script:
     - make CI=1 CC=$COMPILERC
     - make test CC=$COMPILERC
     - if [ -n "$RUNCLANGTIDY" ]; then make clean; fi
-    - if [ -n "$RUNCLANGTIDY" ]; then bear make test example CC=$COMPILERC; fi
+    - if [ -n "$RUNCLANGTIDY" ]; then bear make test examples CC=$COMPILERC; fi
     - if [ -n "$RUNCLANGTIDY" ]; then git ls-files '*.c' | xargs -P 1 -I{} clang-tidy -header-filter=.* -p . {}; fi
