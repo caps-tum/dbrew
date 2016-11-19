@@ -954,6 +954,11 @@ void getStackValue(EmuState* es, EmuValue* v, EmuValue* off)
     assert(off->val < (uint64_t) es->stackSize);
 
     switch(v->type) {
+    case VT_16:
+        v->val = *(uint16_t*) (es->stack + off->val);
+        count = 2;
+        break;
+
     case VT_32:
         v->val = *(uint32_t*) (es->stack + off->val);
         count = 4;
@@ -982,11 +987,18 @@ void getStackValue(EmuState* es, EmuValue* v, EmuValue* off)
 static
 void setStackValue(EmuState* es, EmuValue* v, EmuValue* off)
 {
+    uint16_t* a16;
     uint32_t* a32;
     uint64_t* a64;
     int i, count;
 
     switch(v->type) {
+    case VT_16:
+        a16 = (uint16_t*) (es->stack + off->val);
+        *a16 = (uint16_t) v->val;
+        count = 2;
+        break;
+
     case VT_32:
         a32 = (uint32_t*) (es->stack + off->val);
         *a32 = (uint32_t) v->val;
@@ -1043,6 +1055,7 @@ void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
     v->type = t;
     switch(t) {
     case VT_8:  v->val = *(uint8_t*) addr->val; break;
+    case VT_16: v->val = *(uint16_t*) addr->val; break;
     case VT_32: v->val = *(uint32_t*) addr->val; break;
     case VT_64: v->val = *(uint64_t*) addr->val; break;
     default: assert(0);
@@ -1099,6 +1112,7 @@ void setMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
                  int shouldBeStack)
 {
     EmuValue off;
+    uint16_t* a16;
     uint32_t* a32;
     uint64_t* a64;
     bool isOnStack;
@@ -1113,6 +1127,10 @@ void setMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
     assert(!shouldBeStack);
 
     switch(t) {
+    case VT_16:
+        a16 = (uint16_t*) addr->val;
+        *a16 = (uint16_t) v->val;
+
     case VT_32:
         a32 = (uint32_t*) addr->val;
         *a32 = (uint32_t) v->val;
@@ -2428,11 +2446,11 @@ void processInstr(RContext* c, Instr* instr)
 
     case IT_POP:
         switch(instr->dst.type) {
-        case OT_Reg32:
+        case OT_Reg16:
             addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
-            getMemValue(&v1, &addr, es, VT_32, 1);
+            getMemValue(&v1, &addr, es, VT_16, 1);
             setOpValue(&v1, es, &(instr->dst));
-            es->reg[RI_SP] += 4;
+            es->reg[RI_SP] += 2;
             if (!msIsStatic(v1.state))
                 capture(c, instr);
             break;
@@ -2454,13 +2472,13 @@ void processInstr(RContext* c, Instr* instr)
 
     case IT_PUSH:
         switch(instr->dst.type) {
-        case OT_Ind32:
-        case OT_Reg32:
-        case OT_Imm32:
-            es->reg[RI_SP] -= 4;
+        case OT_Ind16:
+        case OT_Reg16:
+        case OT_Imm16:
+            es->reg[RI_SP] -= 2;
             addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
             getOpValue(&v1, es, &(instr->dst));
-            setMemValue(&v1, &addr, es, VT_32, 1);
+            setMemValue(&v1, &addr, es, VT_16, 1);
             if (!msIsStatic(v1.state))
                 capture(c, instr);
             break;
@@ -2468,9 +2486,27 @@ void processInstr(RContext* c, Instr* instr)
         case OT_Ind64:
         case OT_Reg64:
         case OT_Imm64:
+        case OT_Imm8:
+        case OT_Imm32:
             es->reg[RI_SP] -= 8;
             addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
             getOpValue(&v1, es, &(instr->dst));
+
+            // Sign-extend 8-bit and 32-bit immediate values to 64-bit
+            switch(v1.type) {
+            case VT_8:
+                v1.val = (int64_t) (int8_t) v1.val;
+                break;
+            case VT_32:
+                v1.val = (int64_t) (int32_t) v1.val;
+                break;
+            case VT_64:
+                break;
+            default:
+                assert(0);
+            }
+
+            v1.type = VT_64;
             setMemValue(&v1, &addr, es, VT_64, 1);
             if (!msIsStatic(v1.state))
                 capture(c, instr);

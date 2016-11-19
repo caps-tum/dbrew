@@ -3,9 +3,9 @@ BB f1 (12 instructions):
                 f1+3:  ff 32                 pushq   (%rdx)
                 f1+5:  66 52                 push    %dx
                 f1+7:  52                    push    %rdx
-                f1+8:  6a 10                 pushb   $0x10
-               f1+10:  68 00 10 00 00        pushl   $0x1000
-               f1+15:  68 00 00 00 10        pushl   $0x10000000
+                f1+8:  6a 10                 pushq   $0x10
+               f1+10:  68 00 10 00 00        pushq   $0x1000
+               f1+15:  68 00 00 00 10        pushq   $0x10000000
                f1+20:  66 8f 02              popw    (%rdx)
                f1+23:  8f 02                 popq    (%rdx)
                f1+25:  66 5a                 pop     %dx
