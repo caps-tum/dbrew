@@ -1,0 +1,68 @@
+>>> Testcase known par = 1.
+Saving current emulator state: new with esID 0
+Capture 'H-XXll' (into test|0 + 0)
+Processing BB (test|0)
+Emulation Static State (esID 0, call depth 0):
+  Registers: %rsp (R 0), %rdi (0x1)
+  Flags: (none)
+  Stack: (none)
+Decoding BB test ...
+                test:  XX XX XX XX XX XX XX  mov     0xXXXXXX(%rip),%rax
+              test+7:  48 ff c0              inc     %rax
+             test+10:  XX XX XX XX XX XX XX  mov     %rax,0xXXXXXX(%rip)
+             test+17:  XX XX XX XX XX XX XX  lXX     test+XX,%rax
+             test+24:  00                  
+             test+25:  XX XX XX XX XX XX XX  mov     %rax,0xXXXXXX(%rip)
+             test+32:  48 31 c0              xor     %rax,%rax
+             test+35:  XX XX XX XX XX XX     jmp*q   0xXXXXXX(%rip)
+Emulate 'test: mov 0xXXXXXX(%rip),%rax'
+Capture 'mov 0xXXXXXX,%rax' (into test|0 + 1)
+Emulate 'test+7: inc %rax'
+Capture 'inc %rax' (into test|0 + 2)
+Emulate 'test+10: mov %rax,0xXXXXXX(%rip)'
+Capture 'mov %rax,0xXXXXXX' (into test|0 + 3)
+Emulate 'test+17: lXX test+XX,%rax'
+Emulate 'test+25: mov %rax,0xXXXXXX(%rip)'
+Capture 'movq $0xXXXXXX,0xXXXXXX' (into test|0 + 4)
+Emulate 'test+32: xor %rax,%rax'
+Emulate 'test+35: jmp*q 0xXXXXXX(%rip)'
+Decoding BB test+45 ...
+             test+45:  XX XX XX XX XX XX XX  mov     0xXXXXXX(%rip),%rax
+             test+52:  48 ff c0              inc     %rax
+             test+55:  XX XX XX XX XX XX XX  mov     %rax,0xXXXXXX(%rip)
+             test+62:  c3                    ret    
+Emulate 'test+45: mov 0xXXXXXX(%rip),%rax'
+Capture 'mov 0xXXXXXX,%rax' (into test|0 + 5)
+Emulate 'test+52: inc %rax'
+Capture 'inc %rax' (into test|0 + 6)
+Emulate 'test+55: mov %rax,0xXXXXXX(%rip)'
+Capture 'mov %rax,0xXXXXXX' (into test|0 + 7)
+Emulate 'test+62: ret'
+Capture 'H-ret' (into test|0 + 8)
+Capture 'ret' (into test|0 + 9)
+Generating code for BB test|0 (10 instructions)
+  I 0 : H-XXll                           (test|0)+0   
+  I 1 : mov     0xXXXXXX,%rax            (test|0)+0    XX XX XX XX XX XX XX XX
+  I 2 : inc     %rax                     (test|0)+8    XX XX XX
+  I 3 : mov     %rax,0xXXXXXX            (test|0)+XX   XX XX XX XX XX XX XX XX
+  I 4 : movq    $0xXXXXXX,0xXXXXXX       (test|0)+XX   XX XX XX XX XX XX XX XX XX XX XX XX
+  I 5 : mov     0xXXXXXX,%rax            (test|0)+XX   XX XX XX XX XX XX XX XX
+  I 6 : inc     %rax                     (test|0)+XX   XX XX XX
+  I 7 : mov     %rax,0xXXXXXX            (test|0)+XX   XX XX XX XX XX XX XX XX
+  I 8 : H-ret                            (test|0)+XX  
+  I 9 : ret                              (test|0)+XX   XX
+Generated: 51 bytes (pass1: 77)
+BB gen (8 instructions):
+                 gen:  XX XX XX XX XX XX XX  mov     0xXXXXXX,%rax
+               gen+7:  00                  
+               gen+8:  48 ff c0              inc     %rax
+              gen+11:  XX XX XX XX XX XX XX  mov     %rax,0xXXXXXX
+              gen+18:  00                  
+              gen+19:  XX XX XX XX XX XX XX  movq    $0xXXXXXX,0xXXXXXX
+              gen+26:  XX XX XX XX XX      
+              gen+31:  XX XX XX XX XX XX XX  mov     0xXXXXXX,%rax
+              gen+38:  00                  
+              gen+39:  48 ff c0              inc     %rax
+              gen+42:  XX XX XX XX XX XX XX  mov     %rax,0xXXXXXX
+              gen+49:  00                  
+              gen+50:  c3                    ret    

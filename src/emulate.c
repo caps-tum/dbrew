@@ -1183,11 +1183,24 @@ static
 void addRegToValue(EmuValue* v, EmuState* es, Reg r, int scale)
 {
     if (r.rt == RT_None) return;
-    assert(r.rt == RT_GP64);
+    assert(r.rt == RT_GP64 ||
+           r.rt == RT_IP);
 
-    v->state.cState = combineState(v->state.cState,
-                                   es->reg_state[r.ri].cState, 0);
-    v->val += scale * es->reg[r.ri];
+    switch (r.rt) {
+    case RT_GP64:
+        v->state.cState = combineState(v->state.cState,
+                                       es->reg_state[r.ri].cState, 0);
+        v->val += scale * es->reg[r.ri];
+        break;
+    case RT_IP:
+        v->state.cState = combineState(v->state.cState,
+                                       es->regIP_state.cState, 0);
+        v->val += scale * es->regIP;
+        break;
+    default:
+        assert(0);
+    }
+
 }
 
 // get resulting address (and state) for memory operands
