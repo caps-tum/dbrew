@@ -1,0 +1,59 @@
+>>> Testcase known par = 1.
+Saving current emulator state: new with esID 0
+Capture 'H-call' (into test|0 + 0)
+Processing BB (test|0)
+Emulation Static State (esID 0, call depth 0):
+  Registers: %rsp (R 0), %rdi (0x1)
+  Flags: (none)
+  Stack: (none)
+Decoding BB test ...
+                test:  b0 ff                 mov     $0xff,%al
+              test+2:  66 0f b6 d8           movzx   %al,%bx
+              test+6:  0f b6 c8              movzx   %al,%ecx
+              test+9:  48 0f b6 d0           movzx   %al,%rdx
+             test+13:  48 21 da              and     %rbx,%rdx
+             test+16:  48 21 ca              and     %rcx,%rdx
+             test+19:  48 81 fa ff 00 00 00  cmp     $0xff,%rdx
+             test+26:  75 21                 jne     $test+61
+Emulate 'test: mov $0xff,%al'
+Emulate 'test+2: movzx %al,%bx'
+Emulate 'test+6: movzx %al,%ecx'
+Emulate 'test+9: movzx %al,%rdx'
+Emulate 'test+13: and %rbx,%rdx'
+Emulate 'test+16: and %rcx,%rdx'
+Emulate 'test+19: cmp $0xff,%rdx'
+Emulate 'test+26: jne $test+61'
+Decoding BB test+28 ...
+             test+28:  66 b8 00 ff           mov     $0xff00,%ax
+             test+32:  0f b7 d8              movzx   %ax,%ebx
+             test+35:  48 0f b7 c8           movzx   %ax,%rcx
+             test+39:  48 21 d9              and     %rbx,%rcx
+             test+42:  48 81 f9 00 ff 00 00  cmp     $0xff00,%rcx
+             test+49:  75 0a                 jne     $test+61
+Emulate 'test+28: mov $0xff00,%ax'
+Emulate 'test+32: movzx %ax,%ebx'
+Emulate 'test+35: movzx %ax,%rcx'
+Emulate 'test+39: and %rbx,%rcx'
+Emulate 'test+42: cmp $0xff00,%rcx'
+Emulate 'test+49: jne $test+61'
+Decoding BB test+51 ...
+             test+51:  48 31 c0              xor     %rax,%rax
+             test+54:  48 09 c8              or      %rcx,%rax
+             test+57:  48 09 d0              or      %rdx,%rax
+             test+60:  c3                    ret    
+Emulate 'test+51: xor %rax,%rax'
+Emulate 'test+54: or %rcx,%rax'
+Emulate 'test+57: or %rdx,%rax'
+Emulate 'test+60: ret'
+Capture 'H-ret' (into test|0 + 1)
+Capture 'mov $0xffff,%rax' (into test|0 + 2)
+Capture 'ret' (into test|0 + 3)
+Generating code for BB test|0 (4 instructions)
+  I 0 : H-call                           (test|0)+0   
+  I 1 : H-ret                            (test|0)+0   
+  I 2 : mov     $0xffff,%rax             (test|0)+0    48 c7 c0 ff ff 00 00
+  I 3 : ret                              (test|0)+7    c3
+Generated: 8 bytes (pass1: 34)
+BB gen (2 instructions):
+                 gen:  48 c7 c0 ff ff 00 00  mov     $0xffff,%rax
+               gen+7:  c3                    ret    

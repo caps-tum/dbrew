@@ -2457,6 +2457,61 @@ void processInstr(RContext* c, Instr* instr)
         getOpValue(&vres, es, &(instr->src));
 
         switch(instr->src.type) {
+        case OT_Reg8:
+        case OT_Ind8:
+        case OT_Imm8: {
+            ValType dst_t = opValType(&(instr->dst));
+            assert(dst_t == VT_8 || dst_t == VT_16
+                   || dst_t == VT_32  || dst_t == VT_64);
+            getOpValue(&v1, es, &(instr->src));
+            switch (dst_t) {
+            case VT_8:
+                break;
+            case VT_16:
+                v1.val = (int16_t) (int8_t) v1.val;
+                v1.type = VT_16;
+                break;
+            case VT_32:
+                v1.val = (int32_t) (int8_t) v1.val;
+                v1.type = VT_32;
+                break;
+            case VT_64:
+                v1.val = (int64_t) (int8_t) v1.val;
+                v1.type = VT_64;
+                break;
+            default:
+                assert(0);
+            }
+            captureMov(c, instr, es, &v1);
+            setOpValue(&v1, es, &(instr->dst));
+            setOpState(v1.state, es, &(instr->dst));
+            break;
+        }
+        case OT_Reg16:
+        case OT_Ind16:
+        case OT_Imm16: {
+            ValType dst_t = opValType(&(instr->dst));
+            assert(dst_t == VT_16 || dst_t == VT_32 || dst_t == VT_64);
+            switch (dst_t) {
+            case VT_16:
+                break;
+            case VT_32:
+                v1.val = (int32_t) (int16_t) v1.val;
+                v1.type = VT_32;
+                break;
+            case VT_64:
+                v1.val = (int64_t) (int16_t) v1.val;
+                v1.type = VT_64;
+                break;
+            default:
+                assert(0);
+            }
+            getOpValue(&v1, es, &(instr->src));
+            captureMov(c, instr, es, &v1);
+            setOpValue(&v1, es, &(instr->dst));
+            setOpState(v1.state, es, &(instr->dst));
+            break;
+        }
         case OT_Reg32:
         case OT_Ind32:
         case OT_Imm32:
@@ -2485,6 +2540,33 @@ void processInstr(RContext* c, Instr* instr)
         setOpState(vres.state, es, &(instr->dst));
         break;
     }
+
+    case IT_MOVZX: {
+        OpType dst_t = instr->dst.type;
+        OpType src_t = instr->src.type;
+        assert(dst_t == OT_Reg16 || dst_t == OT_Reg32 || dst_t == OT_Reg64
+               || src_t == OT_Reg8 || src_t == OT_Reg16 || src_t == OT_Ind16
+               || src_t == OT_Ind16);
+        getOpValue(&v1, es, &(instr->src));
+        switch(dst_t) {
+        case OT_Reg16:
+            v1.type = VT_16;
+            break;
+        case OT_Reg32:
+            v1.type = VT_32;
+            break;
+        case OT_Reg64:
+            v1.type = VT_64;
+            break;
+        default:
+            setEmulatorError(c, instr, ET_UnsupportedOperands, 0);
+            return;
+        }
+        captureMov(c, instr, es, &v1);
+        setOpValue(&v1, es, &(instr->dst));
+        setOpState(v1.state, es, &(instr->dst));
+    }
+        break;
 
     case IT_NOP:
         // nothing to do
