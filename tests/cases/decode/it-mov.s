@@ -28,8 +28,8 @@ f1:
     mov r10w, 0x1000
     mov edx, 0x10000000
     mov r10d, 0x10000000
-    mov rdx, 0x1000000000000000
-    mov r10, 0x1000000000000000
+    movabs rdx, 0x1000000000000000
+    movabs r10, 0x1000000000000000
     mov byte ptr [rdi], 0x10
     mov byte ptr [r10], 0x10
     mov word ptr [rdi], 0x1000
