@@ -34,7 +34,7 @@ ifeq ($(CCNAME),$(filter $(CCNAME),gcc cc icc))
  # clang does not know these options
  SNIPPETSFLAGS=$(OPTFLAGS) -mno-vzeroupper -mpreferred-stack-boundary=5
 
-else ifeq ($(shell $(CC) --version | head -c 5),clang)
+else ifeq ($(shell $(CC) -v 2>&1 | grep -c "clang version"), 1)
  # clang
  $(info ** clang detected: $(CC))
  CFLAGS += -fno-pie
