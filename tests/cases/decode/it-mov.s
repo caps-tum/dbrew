@@ -6,6 +6,7 @@
 f1:
     // MOV instructions, Intel Vol. 2A 3-530
     mov [rsi], dl
+    mov [rsi], ah
     mov [rsi], r10b
     mov [rsi], dx
     mov [rsi], r10w
@@ -14,6 +15,7 @@ f1:
     mov [rsi], rdx
     mov [rsi], r10
     mov dl, [rsi]
+    mov ah, [rsi]
     mov r10b, [rsi]
     mov dx, [rsi]
     mov r10w, [rsi]
@@ -23,6 +25,7 @@ f1:
     mov r10, [rsi]
 
     mov dl, 0x10
+    mov ah, 0x10
     mov r10b, 0x10
     mov dx, 0x1000
     mov r10w, 0x1000

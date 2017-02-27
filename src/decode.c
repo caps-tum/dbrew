@@ -1569,7 +1569,8 @@ void decode_B0(DContext* c)
     int ri = (c->opc1 & 7);
     if (c->rex & REX_MASK_B) ri += 8;
     if ((c->opc1 >= 0xB0) && (c->opc1 <= 0xB7)) c->vt = VT_8;
-    c->o1.reg = getReg(getGPRegType(c->vt), (RegIndex)ri);
+    RegType rt = c->hasRex ? getGPRegType(c->vt) : getLegGPRegType(c->vt);
+    c->o1.reg = getReg(rt, (RegIndex)ri);
     c->o1.type = getGPRegOpType(c->vt);
     parseImm(c, c->vt, &c->o2, true);
     addBinaryOp(c->r, c, IT_MOV, c->vt, &c->o1, &c->o2);
