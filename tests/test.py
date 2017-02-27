@@ -118,7 +118,7 @@ class TestCase:
         returnCode, output, errout = Utils.execBuffered(compileArgs)
         if returnCode != 0:
             print("FAIL (Compile)")
-            print("".join(output).join(errout))
+            print("".join(output) + "".join(errout))
             self.status = TestCase.FAILED
             raise TestFailException()
         else:
@@ -155,7 +155,7 @@ class TestCase:
 
         if returnCode != 0:
             print("FAIL (Exit Code %d)" % returnCode)
-            print("".join(outResult).join(errResult))
+            print("".join(outResult) + "".join(errResult))
             self.status = TestCase.FAILED
             raise TestFailException()
         elif int(self.getProperty("nooutput", "0")) == 1:
