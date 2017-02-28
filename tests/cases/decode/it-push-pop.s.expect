@@ -1,4 +1,4 @@
-BB f1 (14 instructions):
+BB f1 (18 instructions):
                   f1:  66 ff 32              pushw   (%rdx)
                 f1+3:  ff 32                 pushq   (%rdx)
                 f1+5:  66 52                 push    %dx
@@ -12,4 +12,8 @@ BB f1 (14 instructions):
                f1+30:  8f 02                 popq    (%rdx)
                f1+32:  66 5a                 pop     %dx
                f1+34:  5a                    pop     %rdx
-               f1+35:  c3                    ret    
+               f1+35:  66 9c                 pushf  
+               f1+37:  66 9d                 popf   
+               f1+39:  9c                    pushfq 
+               f1+40:  9d                    popfq  
+               f1+41:  c3                    ret    

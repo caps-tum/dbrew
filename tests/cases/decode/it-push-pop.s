@@ -29,4 +29,9 @@ f1:
     pop dx
     pop rdx
 
+    pushfw
+    popfw
+    pushfq
+    popfq
+
     ret

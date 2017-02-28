@@ -1560,6 +1560,26 @@ void decode_99(DContext* c)
     addSimple(c->r, c, IT_CQTO, c->vt);
 }
 
+static
+void decode_9C(DContext* c)
+{
+    // pushf/pushfq
+    if (c->ps & PS_66)
+        addSimple(c->r, c, IT_PUSHF, VT_Implicit);
+    else
+        addSimple(c->r, c, IT_PUSHFQ, VT_Implicit);
+}
+
+static
+void decode_9D(DContext* c)
+{
+    // popf/popfq
+    if (c->ps & PS_66)
+        addSimple(c->r, c, IT_POPF, VT_Implicit);
+    else
+        addSimple(c->r, c, IT_POPFQ, VT_Implicit);
+}
+
 
 static
 void decode_B0(DContext* c)
@@ -2076,6 +2096,8 @@ void initDecodeTables(void)
 
     setOpcH(0x98, decode_98); // cltq
     setOpcH(0x99, decode_99); // cqto
+    setOpcH(0x9C, decode_9C); // pushf
+    setOpcH(0x9D, decode_9D); // popf
 
     // 0xA8: test al,imm8
     // 0xA9: test ax/eax/rax,imm16/32/32se
