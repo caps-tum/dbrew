@@ -122,6 +122,10 @@ typedef enum _InstrType {
     // Hints: not actual instructions
     IT_HINT_CALL, // starting inlining of another function at this point
     IT_HINT_RET,  // ending inlining at this point
+    IT_HINT_CALLRET, // was return value of call
+
+    // Libc intrinsic hints
+    IT_LIBC_MEMCPY,
     //
     IT_NOP,
     IT_CLTQ, IT_CWTL, IT_CQTO,
@@ -329,5 +333,6 @@ void initTernaryInstr(Instr* i, InstrType it,
 void attachPassthrough(Instr* i, VexPrefix vp, PrefixSet set,
                        OperandEncoding enc, StateChange sc,
                        int b1, int b2, int b3);
+RegIndex getParRegIndex(int pos);
 
 #endif // INSTR_H

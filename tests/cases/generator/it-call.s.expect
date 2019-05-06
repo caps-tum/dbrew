@@ -1,0 +1,2 @@
+BB f1gen (1 instructions):
+               f1gen:  ff d0                 call    %rax

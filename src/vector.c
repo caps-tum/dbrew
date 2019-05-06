@@ -41,7 +41,7 @@ uint64_t convertToVector(Rewriter* r, uint64_t func, VectorizeReq vreq)
     // already done before?
     Rewriter* rr;
     for(rr = r->next; rr != 0; rr = rr->next) {
-        if ((rr->vreq == vreq) && (rr->func == func)) {
+        if ((rr->vreq == vreq) && (rr->entry_func->start == func)) {
             assert(rr->generatedCodeAddr != 0);
             return rr->generatedCodeAddr;
         }

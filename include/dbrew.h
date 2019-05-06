@@ -110,6 +110,23 @@ uint64_t makeDynamic(uint64_t v);
 // mark a passed-through value as static
 uint64_t makeStatic(uint64_t v);
 
+typedef enum _FunctionConfigFlags {
+    FC_BypassEmu = 1, // Execute function directly, bypassing emulation
+    FC_SetRetKnown = 1<<1, // Set return value of function to a known value
+    FC_SetRetKnownViral = 1<<2, // Same as previous but set CS_STATIC2
+    FC_KeepCallInstr = 1<<3, // Capture call instruction
+    FC_RetValueHint = 1<<4, // Add hint where static return value is loaded
+    FC_RequireNonNullReturn = 1<<5, // Require return value of bypassed function
+                                    // to be != 0;
+    FC_RequireGtZeroReturn = 1<<6, // Similar, but require >0
+    FC_RequireGteZeroReturn = 1<<7, // Similar, but require >=0
+    FC_SetReturnDynamic = 1<<8, // Set rax to dynamic after function capturing
+    FC_IntrinsicHint = 1<<9, // Replace function call with intrinsic hint
+    FC_InhibitLoopUnroll = 1<<10, // Inhibit loop unrolling in function
+    FC_ForceStaticParams = 1<<11, // Force static parameters static when
+                                  // function is called during rewriting
+} FunctionConfigFlags;
+
 // opaque data structures used in interface
 typedef struct _Rewriter Rewriter;
 typedef struct _DBB DBB;
@@ -140,6 +157,13 @@ void dbrew_optverbose(Rewriter* r, bool v);
 
 // config for printing instruction: show also machine code bytes?
 void dbrew_printer_showbytes(Rewriter* r, bool v);
+
+// config for returning original code on rewriting failure
+void dbrew_return_orig_on_fail(Rewriter* r, bool v);
+
+// should immediate call addresses larger than supported immediate values be
+// transformed
+void dbrew_keep_large_call_addrs(Rewriter* r, bool v);
 
 // decode a piece of x86 binary code starting add address <f>
 DBB* dbrew_decode(Rewriter* r, uint64_t f);
@@ -175,10 +199,34 @@ void dbrew_config_function_setname(Rewriter* r, uint64_t f, const char* name);
 // provide a code length in bytes for a function (for debugging)
 void dbrew_config_function_setsize(Rewriter* r, uint64_t f, int len);
 // provide a name for a parameter of the function to rewrite (for debug)
-void dbrew_config_par_setname(Rewriter* c, int par, char* name);
+void dbrew_config_par_setname(Rewriter* c, int par, const char* name);
 // register a valid memory range with permission and name (for debug)
 void dbrew_config_set_memrange(Rewriter* r, char* name, bool isWritable,
                                uint64_t start, int size);
+
+void dbrew_config_function_par_setname(Rewriter* r, uint64_t f, int parIdx, const char* name);
+void dbrew_config_function_parcount(Rewriter* r, uint64_t f, int parCount);
+void dbrew_config_function_par_setstatic(Rewriter* r, uint64_t f, int parNum);
+void dbrew_config_function_setflags(Rewriter* r, uint64_t f, int flags);
+void dbrew_config_function_parmap(Rewriter* r, uint64_t f, int parcount, uint64_t map);
+
+// Macros for defining the parameter map of functions
+#define __PTDef(s,r,t,n) ((uint64_t) (s << 3 | r << 2 | t) << 4*(n - 1))
+#define PNone(n)     __PTDef(0,0,0,n)
+#define SRPInt(n)    __PTDef(1,1,1,n)
+#define SRPFloat(n)  __PTDef(1,1,2,n)
+#define SRPOther(n)  __PTDef(1,1,3,n)
+#define SPInt(n)     __PTDef(1,0,1,n)
+#define SPFloat(n)   __PTDef(1,0,2,n)
+#define SPOther(n)   __PTDef(1,0,3,n)
+#define DRPInt(n)    __PTDef(0,1,1,n)
+#define DRPFloat(n)  __PTDef(0,1,4,n)
+#define DRPOther(n)  __PTDef(0,1,3,n)
+#define DPInt(n)     __PTDef(0,0,1,n)
+#define DPFloat(n)   __PTDef(0,0,2,n)
+#define DPOther(n)   __PTDef(0,0,3,n)
+#define PVariadic(n) __PTDef(1,1,0,n) // Special pattern
+#undef _TDef
 
 // convenience functions, using default rewriter
 void dbrew_def_verbose(bool decode, bool emuState, bool emuSteps);
@@ -191,7 +239,6 @@ uint64_t dbrew_rewrite(Rewriter* r, ...);
 
 // rewrite <f> using default config, return pointer to rewritten code
 uint64_t dbrew_rewrite_func(uint64_t f, ...);
-
 
 
 // Vector API:

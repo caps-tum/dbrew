@@ -34,8 +34,10 @@
 #include "expr.h"
 #include "error.h"
 #include "vector.h"
-
-
+#include "introspect.h"
+#include "config.h"
+#include "colors.h"
+#include "stubs.h"
 
 /*------------------------------------------------------------*/
 /* x86_64 capturing emulator
@@ -153,6 +155,8 @@ void resetEmuState(EmuState* es)
     initMetaState(&(es->regIP_state), CS_STATIC);
 
     es->depth = 0;
+
+    es->inhibitLoopUnroll = false;
 }
 
 EmuState* allocEmuState(int size)
@@ -319,6 +323,7 @@ void copyEmuState(EmuState* dst, EmuState* src)
     dst->depth = src->depth;
     for(i = 0; i < src->depth; i++)
         dst->ret_stack[i] = src->ret_stack[i];
+    dst->inhibitLoopUnroll = src->inhibitLoopUnroll;
 }
 
 static
@@ -1518,7 +1523,7 @@ void captureBinaryOp(RContext* c, Instr* orig, EmuState* es, EmuValue* res)
 
     if (msIsStatic(res->state)) {
         // force results to become unknown?
-        if (c->r->cc->force_unknown[es->depth]) {
+        if (c->r->cc->force_unknown[es->depth] || es->inhibitLoopUnroll) {
             initMetaState(&(res->state), CS_DYNAMIC);
         }
         else {
@@ -1607,7 +1612,7 @@ void captureLea(RContext* c, Instr* orig, EmuState* es, EmuValue* res)
 
     assert(opIsReg(&(orig->dst)));
     if (msIsStatic(res->state)) {
-        if (c->r->cc->force_unknown[es->depth]) {
+        if (c->r->cc->force_unknown[es->depth || es->inhibitLoopUnroll]) {
             // force results to become unknown => load value into dest
 
             initMetaState(&(res->state), CS_DYNAMIC);
@@ -1914,6 +1919,161 @@ void emulateRet(RContext* c, Instr* instr)
         }
         // return to address
         c->exit = es->ret_stack[es->depth];
+        es->inhibitLoopUnroll = false;
+    }
+}
+
+static
+void emuBypassCall(RContext* c, FunctionConfig* fc)
+{
+    assert(fc);
+    EmuState* es = c->r->es;
+
+    // Require ms of register to match states specified by parmap
+    // TODO: Instead of assert: Should raise error and fall back to regular emulation
+    for (int i = 0; i < fc->parCount; i++) {
+        if (msIsStatic(fc->par_state[i])) {
+            assert(msIsStatic(es->reg_state[getParRegIndex(i)]));
+        }
+    }
+
+    // TODO: Handle stack arguments (parcount > 6 and variadic)
+    uint64_t retval;
+    uint64_t fun = fc->start;
+    register int parCount asm ("%r10") = fc->parCount;
+    asm volatile ("cmp $1, %1\n\t"
+                  "cmovge %2, %%rdi\n\t"
+                  "cmp $2, %1\n\t"
+                  "cmovge %3, %%rsi\n\t"
+                  "cmp $3, %1\n\t"
+                  "cmovge %4, %%rdx\n\t"
+                  "cmp $4, %1\n\t"
+                  "cmovge %5, %%rcx\n\t"
+                  "cmp $5,%1\n\t"
+                  "cmovge %6, %%r8\n\t"
+                  "cmp $6, %1\n\t"
+                  "cmovge %7, %%r9\n\t"
+                  "call *%8"
+                  : "=a" (retval)
+                  : "r" (parCount),
+                    "m" (es->reg[RI_DI]),
+                    "m" (es->reg[RI_SI]),
+                    "m" (es->reg[RI_DL]),
+                    "m" (es->reg[RI_CL]),
+                    "m" (es->reg[RI_8]),
+                    "m" (es->reg[RI_9]),
+                    "m" (fun)
+                  : "%rdi", "%rsi",
+                    "%rdx", "%rcx",
+                    "%r8",  "%r9"
+                  );
+
+    // Update emuState with return value
+    if (fc->flags & FC_SetRetKnown || fc->flags & FC_SetRetKnownViral) {
+        CaptureState cs;
+
+        int f = fc->flags;
+        if (f & FC_SetRetKnown) {
+            cs = CS_STATIC;
+        } else if (f & FC_SetRetKnownViral) {
+            cs = CS_STATIC2;
+        } else {
+            cs = CS_DYNAMIC;
+        }
+
+        MetaState ms;
+        initMetaState(&ms, cs);
+        es->reg[RI_AL] = retval;
+        es->reg_state[RI_AL] = ms;
+    }
+    if (fc->flags & FC_RetValueHint) {
+        Instr i;
+        initSimpleInstr(&i, IT_HINT_CALLRET);
+        capture(c, &i);
+    }
+}
+
+// Captures static value loads for function parameters
+static
+void loadStaticPars(RContext* c, int parCount)
+{
+    parCount = parCount > 6 ? 6 : parCount;
+    Instr in;
+    // Load values of known parameter registers before call
+    // TODO: Handle stack arguments (parcount > 6 and variadic)
+    for (int i = 0; i < parCount; i++) {
+        RegIndex ri = getParRegIndex(i);
+        if (msIsStatic(c->r->es->reg_state[ri])) {
+            Operand* o1 = getRegOp(getReg(RT_GP64, ri));
+            Operand* o2 = getImmOp(VT_64, c->r->es->reg[ri]);
+            initBinaryInstr(&in, IT_MOV, VT_64, o1, o2);
+            captureGenerated(c, &in);
+        }
+    }
+}
+
+static
+void captureKeepCall(RContext* c, FunctionConfig* fc, Instr* instr, EmuValue* v1)
+{
+    Instr in;
+    Instr restoreTmpReg;
+    bool saveTmpReg = false;
+
+    Rewriter* r = c->r;
+
+    loadStaticPars(c, fc->parCount);
+
+    if (fc->flags & FC_IntrinsicHint) {
+        InstrType ty = config_lookup_intrinsic(fc);
+        // TODO: Raise error
+        assert(ty != IT_Invalid);
+        initSimpleInstr(&in, ty);
+        captureStub(c, ty);
+    } else {
+        if (r->keepLargeCallAddrs) {
+            initUnaryInstr(&in, IT_CALL, &instr->dst);
+        } else {
+            // Load address into register
+            RegIndex freeReg = getUnusedReg(c, NULL, &saveTmpReg);
+            Operand* tmpRegOp = getRegOp(getReg(RT_GP64, freeReg));
+            // TODO: Move into common function shared with captureToOffset
+            if (saveTmpReg) {
+                Instr push;
+                initUnaryInstr(&restoreTmpReg, IT_POP, tmpRegOp);
+                initUnaryInstr(&push, IT_PUSH, tmpRegOp);
+                capture(c, &push);
+            }
+            Operand* o2 = getImmOp(VT_64, v1->val);
+            initBinaryInstr(&in, IT_MOV, VT_64, tmpRegOp, o2);
+            capture(c, &in);
+            initUnaryInstr(&in, IT_CALL, tmpRegOp);
+        }
+    }
+    capture(c, &in);
+    if (saveTmpReg) {
+        capture(c, &restoreTmpReg);
+    }
+}
+
+static
+void handleBypassEmu(RContext* c, FunctionConfig* fc, Instr* instr, EmuValue* v1)
+{
+    EmuState* es = c->r->es;
+    Rewriter* r = c->r;
+
+    // TODO: It might be required to both execute a bypass call and keep
+    // the call instruction in cases where rest of program depends on
+    // return value
+    if (fc->flags & FC_KeepCallInstr ||
+        fc->flags & FC_IntrinsicHint) {
+
+        captureKeepCall(c, fc, instr, v1);
+
+        if (fc->flags & FC_SetReturnDynamic) {
+            initMetaState(&es->reg_state[RI_A], CS_DYNAMIC);
+        }
+    } else {
+        emuBypassCall(c, fc);
     }
 }
 
@@ -1975,7 +2135,6 @@ void processInstr(RContext* c, Instr* instr)
         break;
 
     case IT_CALL: {
-        // TODO: keep call. For now, we always inline
         getOpValue(&v1, es, &(instr->dst));
         if (es->depth >= MAX_CALLDEPTH) {
             setEmulatorError(c, instr, ET_BufferOverflow,
@@ -1989,24 +2148,33 @@ void processInstr(RContext* c, Instr* instr)
             return;
         }
 
-        Instr i;
-        Operand o;
+        // Check function config flags to see what to do
+        FunctionConfig* fc = config_get_function(r, v1.val);
+        if (fc && fc->flags & FC_BypassEmu) {
+            handleBypassEmu(c, fc, instr, &v1);
+        } else {
+            Instr i;
+            Operand o;
 
-        // push address of instruction after CALL onto stack
-        copyOperand(&o, getImmOp(VT_64, instr->addr + instr->len));
-        initUnaryInstr(&i, IT_PUSH, &o);
-        processInstr(c, &i);
-        if (c->e) return; // error
+            // Should loop unrolling be inhibited in this function?
+            es->inhibitLoopUnroll = fc && (fc->flags & FC_InhibitLoopUnroll);
 
-        es->ret_stack[es->depth++] = o.val;
+           // push address of instruction after CALL onto stack
+            copyOperand(&o, getImmOp(VT_64, instr->addr + instr->len));
+            initUnaryInstr(&i, IT_PUSH, &o);
+            processInstr(c, &i);
+            if (c->e) return; // error
 
-        if (r->addInliningHints) {
-            initSimpleInstr(&i, IT_HINT_CALL);
-            capture(c, &i);
+            es->ret_stack[es->depth++] = o.val;
+
+            if (r->addInliningHints) {
+                initSimpleInstr(&i, IT_HINT_CALL);
+                capture(c, &i);
+            }
+
+            // address to jump to
+            c->exit = v1.val;
         }
-
-        // address to jump to
-        c->exit = v1.val;
         break;
     }
 
@@ -2838,3 +3006,27 @@ uint64_t processKnownTargets(RContext* c, uint64_t f)
     return f;
 }
 
+// Push a value with specific meta state to stack without going through the
+// ordinary instruction emulation machinery. Used for pushing function parameter
+// values to stack.
+void pushValue(EmuState* es, ValType vt, uint64_t v, MetaState ms)
+{
+    EmuValue ev = emuValue(v, vt, ms);
+
+    switch (vt) {
+    case VT_64:
+    case VT_32:
+    case VT_8:
+        es->reg[RI_SP] -= 8;
+        break;
+    case VT_16:
+        es->reg[RI_SP] -= 2;
+        break;
+    default:
+        assert(0);
+    }
+
+    EmuValue addr = emuValue(es->reg[RI_SP], vt, es->reg_state[RI_SP]);
+    setMemValue(&ev, &addr, es, vt, true);
+    setMemState(es, &addr, vt, ms, true);
+}

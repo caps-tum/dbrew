@@ -74,9 +74,8 @@ struct _CBB {
 
 char* cbb_prettyName(CBB* bb);
 
-
-
-#define CC_MAXPARAM     6
+#define CC_MAXREGPAR    6
+#define CC_MAXPARAM     16
 #define CC_MAXCALLDEPTH 5
 
 // emulator capture states
@@ -122,6 +121,20 @@ struct _MemRangeConfig
     int size;
 };
 
+// Function parameter configuration
+typedef enum _ParType {
+    ParDisabled = 0,
+    ParInteger,
+    ParFloat,
+    ParOther,
+} ParType;
+
+typedef struct _ParMap {
+    ParType parType : 2;
+    bool isReturn   : 1;
+    bool isStatic   : 1;
+} __attribute__((packed)) ParMap;
+
 // extension of MemRangeConfig
 struct _FunctionConfig
 {
@@ -133,20 +146,30 @@ struct _FunctionConfig
     uint64_t start;
     int size;
 
-    // TODO: extended config for functions
-};
+    // Function config specific parameters below.
 
-struct _CaptureConfig
-{
+    // number of parameters passed to function to rewrite
+    int parCount;
     // specialise for some parameters to be constant?
     MetaState par_state[CC_MAXPARAM];
     // for debug: allow parameters to be named
     char* par_name[CC_MAXPARAM];
 
-     // does function to rewrite return floating point?
+    int flags;
+    // Bypass emulation and call function directly?
+    // Set return value as static if emulation is bypassed
+
+    // Store function parameter maps
+    ParMap parMap[CC_MAXPARAM];
+};
+
+struct _CaptureConfig
+{
+
+    FunctionConfig* next; // chain
+
+    // does function to rewrite return floating point?
     bool hasReturnFP;
-    // number of parameters passed to function to rewrite
-    int parCount;
     // avoid unrolling at call depths
     bool force_unknown[CC_MAXCALLDEPTH];
     // all branches forced known
@@ -172,8 +195,9 @@ typedef enum _VectorizeReq {
 
 
 FunctionConfig* config_find_function(Rewriter* r, uint64_t f);
-
-
+FunctionConfig* config_get_function(Rewriter* r, uint64_t f);
+InstrType config_lookup_intrinsic(FunctionConfig* cc);
+void config_free(Rewriter* r);
 
 //
 // Emulation
@@ -242,6 +266,9 @@ struct _EmuState {
     uint64_t ret_stack[MAX_CALLDEPTH];
     int depth;
 
+    // Inhibibt loop unrolling
+    bool inhibitLoopUnroll;
+
 };
 
 
@@ -268,7 +295,7 @@ struct _Rewriter {
     ExprPool * ePool;
 
     // function to capture
-    uint64_t func;
+    FunctionConfig* entry_func;
 
     // buffer for generated binary code
     int capCodeCapacity;
@@ -304,6 +331,9 @@ struct _Rewriter {
 
     // debug output
     bool showDecoding, showEmuState, showEmuSteps, showOptSteps;
+
+    // Don't rewrite call instructions to avoid impossible immediates
+    bool keepLargeCallAddrs;
 
     // printer config
     bool printBytes;

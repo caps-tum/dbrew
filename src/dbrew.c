@@ -102,13 +102,14 @@ void dbrew_set_capture_capacity(Rewriter* r,
 
 void dbrew_set_function(Rewriter* rewriter, uint64_t f)
 {
-    rewriter->func = f;
 
     // reset all decoding/state
     initRewriter(rewriter);
     dbrew_config_reset(rewriter);
 
     freeEmuState(rewriter);
+
+    rewriter->entry_func = config_get_function(rewriter, f);
 }
 
 void dbrew_verbose(Rewriter* rewriter,
@@ -127,6 +128,16 @@ void dbrew_optverbose(Rewriter* r, bool v)
 void dbrew_printer_showbytes(Rewriter* r, bool v)
 {
     r->printBytes = v;
+}
+
+void dbrew_return_orig_on_fail(Rewriter* r, bool v)
+{
+    r->returnOrigOnFail = v;
+}
+
+void dbrew_keep_large_call_addrs(Rewriter* r, bool v)
+{
+    r->keepLargeCallAddrs = v;
 }
 
 uint64_t dbrew_generated_code(Rewriter* r)
@@ -148,6 +159,7 @@ int dbrew_set_vectorsize(Rewriter* r, int s)
     r->vectorsize = s;
     return s;
 }
+
 
 //-----------------------------------------------------------------
 // convenience functions, using defaults
@@ -208,7 +220,7 @@ uint64_t dbrew_rewrite(Rewriter* r, ...)
     if (e) {
         // on error, return original function
         logError(e, (char*) "Stopped rewriting; return original");
-        r->generatedCodeAddr = r->func;
+        r->generatedCodeAddr = r->entry_func->start;
     }
 
     return r->generatedCodeAddr;

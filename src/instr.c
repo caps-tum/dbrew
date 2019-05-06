@@ -18,6 +18,7 @@
  */
 
 #include "instr.h"
+#include "common.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -676,4 +677,15 @@ void attachPassthrough(Instr* i, VexPrefix vp,
     if (b3 < 0) return;
     i->ptLen++;
     i->ptOpc[2] = (uint8_t) b3;
+}
+
+RegIndex getParRegIndex(int pos) {
+    const int maxPars = 6;
+    // calling convention x86-64: parameters are stored in registers
+    // see https://en.wikipedia.org/wiki/X86_calling_conventions
+
+    static RegIndex parReg[CC_MAXPARAM] = { RI_DI, RI_SI, RI_D, RI_C, RI_8, RI_9 };
+
+    assert(pos < maxPars);
+    return parReg[pos];
 }

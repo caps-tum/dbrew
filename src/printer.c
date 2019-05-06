@@ -314,7 +314,12 @@ char* op2string(Operand* o, Instr* instr, FunctionConfig* fc)
     case OT_Reg128:
     case OT_Reg256:
     case OT_Reg512:
-        off += sprintf(buf, "%%%s", regName(o->reg));
+        // Match objdump representation
+        if (instr->type == IT_CALL) {
+            off += sprintf(buf, "*%%%s", regName(o->reg));
+        } else {
+            off += sprintf(buf, "%%%s", regName(o->reg));
+        }
         break;
 
     case OT_Imm8:
@@ -430,6 +435,9 @@ const char* instrName(InstrType it, int* pOpCount)
     switch(it) {
     case IT_HINT_CALL: n = "H-call"; break;
     case IT_HINT_RET:  n = "H-ret"; break;
+    case IT_HINT_CALLRET: n = "H-call-ret"; break;
+
+    case IT_LIBC_MEMCPY: n = "H-libc-memcpy"; break;
 
     case IT_NOP:     n = "nop"; break;
     case IT_RET:     n = "ret"; break;
