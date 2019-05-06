@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "buffers.h"
 #include "common.h"
@@ -33,7 +34,8 @@
 #include "engine.h"
 #include "generate.h"
 #include "vector.h"
-
+#include "colors.h"
+#include "introspect.h"
 
 /**
  * DBrew API functions
@@ -41,7 +43,10 @@
 
 Rewriter* dbrew_new(void)
 {
-    return allocRewriter();
+    Rewriter* r = allocRewriter();
+    initElfData(r, getpid());
+
+    return r;
 }
 
 void dbrew_free(Rewriter* r)
@@ -124,6 +129,11 @@ void dbrew_optverbose(Rewriter* r, bool v)
     r->showOptSteps = v;
 }
 
+void dbrew_colorful_output(Rewriter* r, bool v) {
+    r->colorfulOutput = v;
+    setColors(v);
+}
+
 void dbrew_printer_showbytes(Rewriter* r, bool v)
 {
     r->printBytes = v;
@@ -147,6 +157,11 @@ int dbrew_set_vectorsize(Rewriter* r, int s)
 
     r->vectorsize = s;
     return s;
+}
+
+uint64_t dbrew_util_symname_to_ptr(Rewriter* r, const char* symname)
+{
+    return symToAddr(r, symname);
 }
 
 //-----------------------------------------------------------------
@@ -186,6 +201,9 @@ uint64_t dbrew_rewrite(Rewriter* r, ...)
 {
     va_list argptr;
     Error* e;
+
+    // Set colorful output state
+    setColors(r->colorfulOutput);
 
     va_start(argptr, r);
     e = vEmulateAndCapture(r, argptr);

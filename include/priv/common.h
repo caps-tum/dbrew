@@ -20,10 +20,12 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include "config.h"
 #include "dbrew.h"
 #include "buffers.h"
 #include "expr.h"
 #include "instr.h"
+#include "introspect.h"
 
 #include <stdint.h>
 
@@ -55,6 +57,9 @@ struct _CBB {
     // instructions captured within this BB
     int count;
     Instr* instr;
+
+    // captured instructions metadata
+    ElfAddrInfo* info;
 
     // two possible exits: next on branching or fall-through
     CBB *nextBranch, *nextFallThrough;
@@ -259,6 +264,9 @@ struct _Rewriter {
     int capInstrCount, capInstrCapacity;
     Instr* capInstr;
 
+    // captured instruction metadata
+    ElfAddrInfo* capInstrinfo;
+
     // captured basic blocks
     int capBBCount, capBBCapacity;
     CBB* capBB;
@@ -303,10 +311,14 @@ struct _Rewriter {
     bool doCopyPass; // test pass
 
     // debug output
-    bool showDecoding, showEmuState, showEmuSteps, showOptSteps;
+    bool showDecoding, showEmuState, showEmuSteps, showOptSteps,
+        colorfulOutput;
 
     // printer config
     bool printBytes;
+
+    // Context of ELF support module
+    ElfContext* elf;
 
     // list of related rewriters
     Rewriter* next;

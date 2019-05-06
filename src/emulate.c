@@ -34,8 +34,9 @@
 #include "expr.h"
 #include "error.h"
 #include "vector.h"
-
-
+#include "introspect.h"
+#include "config.h"
+#include "colors.h"
 
 /*------------------------------------------------------------*/
 /* x86_64 capturing emulator
@@ -394,20 +395,43 @@ const char* flagName(int f)
 void printEmuState(EmuState* es)
 {
     int i, spOff, spMin, spMax, o, oo;
+    bool ret;
+    ElfAddrInfo info;
+    AddrSymInfo syminfo;
 
     printf("Emulation State:\n");
 
     printf("  Call stack (current depth %d): ", es->depth);
-    for(i=0; i<es->depth; i++)
-        printf(" %p", (void*) es->ret_stack[i]);
     printf("%s\n", (es->depth == 0) ? " (empty)":"");
+    for(i=es->depth; i > 0; i--) {
+        ret = addrToLine(es->r, es->ret_stack[i - 1], &info);
+        ret = ret && addrToSym(es->r, es->ret_stack[i - 1], &syminfo);
+        if (ret) {
+            printf("  #%d  %p in %s at %s:%d\n",
+                   es->depth - i, (void*) es->ret_stack[i - 1],
+                   syminfo.name, info.fileName, info.lineno);
+        } else {
+            printf(" %p", (void*) es->ret_stack[es->depth - i]);
+        }
+    }
+    printf("\n");
 
     printf("  Registers:\n");
     for(i=0; i < RI_GPMax; i++) {
         MetaState* ms = &(es->reg_state[i]);
-        printf("    %%%-3s = 0x%016lx %c",
+        int color = 0;
+        if (ms->cState == CS_DEAD) {
+            color = CADim;
+        } else if (ms->cState == CS_STATIC || ms->cState == CS_STATIC2) {
+            color = CABright;
+        }
+        cprintf(color,  "    %%%-3s = 0x%016lx %c",
                regNameI(RT_GP64, (RegIndex)i),
                es->reg[i], captureState2Char( ms->cState ));
+        ret = addrToSym(es->r, es->reg[i], &syminfo);
+        if (ret) {
+            cprintf(CFBlue, " <%s:%lu> ", syminfo.name, syminfo.offset);
+        }
         if (ms->range)
             printf(", range %s", expr_toString(ms->range));
         if (ms->parDep)
@@ -437,15 +461,17 @@ void printEmuState(EmuState* es)
     else {
         printf("  Stack:\n");
         for(o = spMin; o < spMax; o += 8) {
-            printf("   %016lx ", (uint64_t) (es->stackStart + o));
+            cprintf(o < spOff ? CADim : 0, "   %016lx ", (uint64_t) (es->stackStart + o));
             for(oo = o; oo < o+8 && oo <= spMax; oo++) {
-                printf(" %s%02x %c", (oo == spOff) ? "*" : " ", es->stack[oo],
-                       captureState2Char(es->stackState[oo].cState));
+                cprintf(CABright, " %s",  (oo == spOff) ? "*" : " ");
+                    cprintf(oo < spOff ? CADim : 0, "%02x %c", es->stack[oo],
+                           captureState2Char(es->stackState[oo].cState));
             }
             printf("\n");
         }
-        printf("   %016lx  %s\n",
-               (uint64_t) (es->stackStart + o), (o == spOff) ? "*" : " ");
+        printf("   %016lx  ",
+               (uint64_t) (es->stackStart + o));
+        cprintf(CABright, "%s\n", (o == spOff) ? "*" : " ");
     }
 }
 
@@ -656,6 +682,32 @@ char* cbb_prettyName(CBB* bb)
     return buf;
 }
 
+static
+ElfAddrInfo* addCaptureInfo(RContext* c, int offset)
+{
+    assert(offset >= 0);
+
+    Rewriter* r = c->r;
+
+    if (r->capInstrCount >= r->capInstrCapacity) {
+        static Error e;
+        setError(&e, ET_BufferOverflow, EM_Rewriter, r,
+                 "Too many captured instruction metadata's");
+        c->e = &e;
+        return NULL;
+    }
+
+    // If instruction is inserted at specific offset, make room by moving
+    // instructions. Analogous to insertCapInstr.
+    ElfAddrInfo* info = r->capInstrinfo + (r->capInstrCount - offset);
+    memmove(info + 1, info, sizeof(Instr) * offset);
+    if (r->es) {
+        if (! addrToLine(r, r->es->regIPCur, info))
+            return 0;
+    }
+    return info;
+}
+
 int pushCaptureBB(RContext* c, CBB* bb)
 {
     Rewriter* r = c->r;
@@ -701,7 +753,8 @@ Instr* newCapInstr(RContext* c)
 }
 
 // capture a new instruction
-void capture(RContext* c, Instr* instr)
+static
+void captureToOffset(RContext* c, Instr* instr, int offset, bool generated)
 {
     Instr* newInstr;
     Rewriter* r = c->r;
@@ -709,17 +762,50 @@ void capture(RContext* c, Instr* instr)
     if (cbb == 0) return;
 
     if (r->showEmuSteps)
-        printf("Capture '%s' (into %s + %d)\n",
-               instr2string(instr, 0, cbb->fc), cbb_prettyName(cbb), cbb->count);
+        cprintf(CABright | CFMagenta, "Capture '%s' (into %s + %d)\n",
+                instr2string(instr, 0, c->r, cbb->fc), cbb_prettyName(cbb),
+                             cbb->count - offset);
 
-    newInstr = newCapInstr(c);
+    ElfAddrInfo* info = addCaptureInfo(c, offset);
+    if (info && generated) {
+        strncpy(info->filePath, "<generated>", ELF_MAX_NAMELEN);
+        info->fileName = info->filePath;
+        info->lineno = 0;
+    }
     if (c->e) return;
-    if (cbb->instr == 0) {
-        cbb->instr = newInstr;
-        assert(cbb->count == 0);
+
+    if (offset == 0) {
+        newInstr = newCapInstr(c);
+        if (c->e) return;
+        // Set up new CBB to point to first captured instruction
+        if (cbb->instr == 0) {
+            cbb->instr = newInstr;
+            assert(cbb->count == 0);
+        }
+        if (cbb->info == NULL) {
+            cbb->info = info;
+        }
+    } else {
+        newInstr = insertCapInstr(c, offset);
+        if (c->e) return;
     }
     copyInstr(newInstr, instr);
     cbb->count++;
+
+    if (saveTmpReg) {
+        capture(c, &restoreRegInstr);
+    }
+}
+
+static
+void captureGenerated(RContext* c, Instr* instr)
+{
+    captureToOffset(c, instr, 0, true);
+}
+
+void capture(RContext* c, Instr* instr)
+{
+    captureToOffset(c, instr, 0, false);
 }
 
 // clone a decoded BB as a CBB
@@ -1380,20 +1466,38 @@ void applyStaticToInd(Operand* o, EmuState* es)
     if (!opIsInd(o)) return;
 
     if ((o->reg.rt == RT_GP64) && msIsStatic(es->reg_state[o->reg.ri])) {
-        o->val += es->reg[o->reg.ri];
-        o->reg.rt = RT_None;
+        uint64_t val = o->val + es->reg[o->reg.ri];
+
+        if (val > INT32_MAX) {
+            // If register evaluates to a dynamic value > 0, force register
+            // dynamic and restore it's value. We can't encode memory operands
+            // with values > 32-bit
+            // TODO: Test this
+
+            Operand* imm;
+            Instr i;
+            Operand* no;
+
+            // HACK: We need a RContext to pass to capture
+            RContext ctx;
+            ctx.r = es->r;
+            ctx.e = 0;
+
+            imm = getImmOp(VT_64, val);
+            no = getRegOp(o->reg);
+            initBinaryInstr(&i, IT_MOV, VT_64, no, imm);
+            captureGenerated(&ctx, &i);
+        } else {
+            o->val = val;
+            o->reg.rt = RT_None;
+        }
+
     }
     if ((o->reg.rt == RT_IP) && msIsStatic(es->regIP_state)) {
+        // If this results in a register > INT32_MAX, this is handled in the
+        // capture function
         o->val += es->regIP;
         o->reg.rt = RT_None;
-    }
-
-    if (o->scale > 0) {
-        assert(o->ireg.rt == RT_GP64);
-        if (msIsStatic(es->reg_state[o->ireg.ri])) {
-            o->val += o->scale * es->reg[o->ireg.ri];
-            o->scale = 0;
-        }
     }
 }
 
@@ -1417,7 +1521,16 @@ void captureMov(RContext* c, Instr* orig, EmuState* es, EmuValue* res)
         if (opStateIsTracked(es, &(orig->dst))) return;
 
         // source is static, use immediate
-        o = getImmOp(res->type, res->val);
+        n = getImmOp(res->type, res->val);
+
+        // If dest is not a reg operand and imm > INT_MAX, then we cannot
+        // encode. load dest into a register
+        if (opIsInd(d) && n->val > INT32_MAX) {
+            assert(opIsReg(o));
+            initBinaryInstr(&i, IT_MOV, VT_64, o, n);
+            captureGenerated(c, &i);
+            n = o;
+        }
     }
     initBinaryInstr(&i, orig->type, orig->vtype, &(orig->dst), o);
     applyStaticToInd(&(i.dst), es);
@@ -1868,10 +1981,10 @@ void setEmulatorError(RContext* c, Instr* instr,
         d = buf;
         if (et == ET_UnsupportedInstr)
             sprintf(buf, "Instruction not implemented for %s",
-                    instr2string(instr, 0, 0));
+                    instr2string(instr, 0, 0, 0));
         else if (et == ET_UnsupportedOperands)
             sprintf(buf, "Operand types not implemented for %s",
-                    instr2string(instr, 0, 0));
+                    instr2string(instr, 0, 0, 0));
         else
             d = 0;
     }

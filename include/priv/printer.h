@@ -24,11 +24,11 @@
 
 const char* regNameI(RegType rt, RegIndex ri);
 const char* regName(Reg r);
-char* op2string(Operand* o, Instr* instr, FunctionConfig *fc);
+char* op2string(Operand* o, Instr* instr, Rewriter* r, FunctionConfig *fc);
 const char* instrName(InstrType it, int* pOpCount);
-char* instr2string(Instr* instr, int align, FunctionConfig *fc);
+char* instr2string(Instr* instr, int align, Rewriter* r, FunctionConfig *fc);
 char* bytes2string(Instr* instr, int start, int count);
-char* prettyAddress(uint64_t a, FunctionConfig* fc);
+char* prettyAddress(Rewriter* r, uint64_t a, FunctionConfig* fc);
 void printDecodedBBs(Rewriter* r);
 
 #endif // PRINTER_H

@@ -137,6 +137,7 @@ void dbrew_set_function(Rewriter* rewriter, uint64_t f);
 void dbrew_verbose(Rewriter* rewriter,
                    bool decode, bool emuState, bool emuSteps);
 void dbrew_optverbose(Rewriter* r, bool v);
+void dbrew_colorful_output(Rewriter* r, bool v);
 
 // config for printing instruction: show also machine code bytes?
 void dbrew_printer_showbytes(Rewriter* r, bool v);
@@ -148,7 +149,7 @@ DBB* dbrew_decode(Rewriter* r, uint64_t f);
 void dbrew_decode_print(Rewriter* r, uint64_t f, int count);
 
 // print instructions from a decoded basic block
-void dbrew_print_decoded(DBB* bb, bool printBytes);
+void dbrew_print_decoded(DBB* bb, Rewriter* r, bool printBytes);
 
 // initialize emulator, use given stack size
 void dbrew_set_stacksize(Rewriter *c, int stacksize);
@@ -160,6 +161,10 @@ uint64_t dbrew_emulate_capture(Rewriter* r, ...);
 // buffer with regenerated code, captured from emulation
 uint64_t dbrew_generated_code(Rewriter* r);
 int dbrew_generated_size(Rewriter* r);
+
+// Attempt to look up the symbol of symbol and return its start address. Returns
+// 0 on error;
+uint64_t dbrew_util_symname_to_ptr(Rewriter* r, const char* symname);
 
 // configure rewriter
 void dbrew_config_reset(Rewriter* r);

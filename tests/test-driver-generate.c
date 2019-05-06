@@ -35,7 +35,7 @@ int main()
     if (c.e)
         logError(c.e, (char*) "Stopped");
     else {
-        printf("Instruction: %s\n", instr2string(instr, 0, cbb->fc));
+        printf("Instruction: %s\n", instr2string(instr, 0, 0, cbb->fc));
         printf("Generated:  %s\n", bytes2string(instr, 0, instr->len));
     }
     return 0;

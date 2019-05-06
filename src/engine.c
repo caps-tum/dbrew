@@ -31,7 +31,9 @@
 #include "generate.h"
 #include "expr.h"
 #include "error.h"
-
+#include "introspect.h"
+#include "instr.h"
+#include "colors.h"
 
 Rewriter* allocRewriter(void)
 {
@@ -45,6 +47,7 @@ Rewriter* allocRewriter(void)
     r->decInstrCount = 0;
     r->decInstrCapacity = 0;
     r->decInstr = 0;
+    r->capInstrinfo = 0;
 
     r->decBBCount = 0;
     r->decBBCapacity = 0;
@@ -86,6 +89,9 @@ Rewriter* allocRewriter(void)
     r->showEmuState = false;
     r->showEmuSteps = false;
     r->showOptSteps = false;
+    r->colorfulOutput = false;
+
+    r->elf = 0;
 
     // default: assembly printer shows bytes
     r->printBytes = true;
@@ -116,6 +122,12 @@ void initRewriter(Rewriter* r)
     }
     r->capInstrCount = 0;
 
+    if (r->capInstrinfo == 0) {
+        r->capInstrinfo = (ElfAddrInfo*) malloc(sizeof(ElfAddrInfo) *
+                                                r->capInstrCapacity);
+        memset(r->capInstrinfo, 0, sizeof(ElfAddrInfo) * r->capInstrCapacity);
+    }
+
     if (r->capBB == 0) {
         // default
         if (r->capBBCapacity == 0) r->capBBCapacity = 50;
@@ -139,6 +151,7 @@ void initRewriter(Rewriter* r)
 
     if (r->ePool == 0)
         r->ePool = expr_allocPool(1000);
+
 }
 
 void freeRewriter(Rewriter* r)
@@ -235,6 +248,7 @@ Error* emulateAndCapture(Rewriter* r, int parCount, uint64_t* par)
 
     // and start with this CBB
     bb_addr = cbb->dec_addr;
+    es->regIPCur = bb_addr;
     r->currentCapBB = cbb;
     if (r->addInliningHints) {
         // hint: here starts a function, we can assume ABI calling conventions
@@ -250,6 +264,7 @@ Error* emulateAndCapture(Rewriter* r, int parCount, uint64_t* par)
     }
     if (r->showEmuState) {
         es->regIP = bb_addr;
+        es->regIPCur = bb_addr;
         printEmuState(es);
     }
 
@@ -272,12 +287,13 @@ Error* emulateAndCapture(Rewriter* r, int parCount, uint64_t* par)
             r->currentCapBB = cbb;
 
             if (r->showEmuSteps) {
-                printf("Processing BB (%s), %d BBs in queue\n",
+                cprintf(CABright | CFCyan, "Processing BB (%s), %d BBs in queue\n",
                        cbb_prettyName(cbb), r->capStackTop);
                 printStaticEmuState(es, cbb->esID);
             }
             if (r->showEmuState) {
                 es->regIP = bb_addr;
+                es->regIPCur = bb_addr;
                 printEmuState(es);
             }
         }
@@ -289,8 +305,21 @@ Error* emulateAndCapture(Rewriter* r, int parCount, uint64_t* par)
             instr = dbb->instr + i;
 
             if (r->showEmuSteps) {
-                printf("Emulate '%s:", prettyAddress(instr->addr, dbb->fc));
-                printf(" %s'\n", instr2string(instr, 0, dbb->fc));
+                ElfAddrInfo info;
+                bool ret = addrToLine(r, instr->addr, &info);
+                if (ret) {
+                    char* line = getSourceLine(r, info.filePath, info.lineno);
+                    if (line) {
+                        cprintf(CFGreen, "%s\n", line);
+                    }
+                    // TODO: Remove duplicate printfs
+                    cprintf(CFYellow, "Emulate '%s", prettyAddress(r, instr->addr, dbb->fc));
+                    cprintf(CFYellow, " %s'", instr2string(instr, 0, r, dbb->fc));
+                    cprintf(CFYellow, " at %s:%d\n", info.fileName, info.lineno);
+                } else {
+                    cprintf(CFYellow, "Emulate '%s:", prettyAddress(r, instr->addr, dbb->fc));
+                    cprintf(CFYellow, " %s'\n", instr2string(instr, 0, r, dbb->fc));
+                }
             }
 
             // for RIP-relative accesses
@@ -308,7 +337,10 @@ Error* emulateAndCapture(Rewriter* r, int parCount, uint64_t* par)
             nextbb_addr = processKnownTargets(&cxt, cxt.exit);
 
             if (r->showEmuState) {
-                if (nextbb_addr != 0) es->regIP = nextbb_addr;
+                if (nextbb_addr != 0) {
+                    es->regIP = nextbb_addr;
+                    es->regIPCur = nextbb_addr;
+                }
                 printEmuState(es);
             }
 
@@ -512,6 +544,9 @@ void generateBinaryFromCaptured(RContext *c)
     if (r->showEmuSteps) {
         printf("Generated: %d bytes (pass1: %d)\n",
                (int)(buf1 - buf0), r->cs->used - usedPass0);
+        // Flush: if we segfault while running the rewritten code, make sure that
+        // all output is shown in less
+        fflush(0);
         //printf(" at %lx\n", (uint64_t) buf0);
     }
 

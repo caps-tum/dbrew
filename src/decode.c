@@ -39,6 +39,7 @@
 #include "printer.h"
 #include "engine.h"
 #include "error.h"
+#include "colors.h"
 
 // decode context
 struct _DContext {
@@ -2500,7 +2501,7 @@ DBB* dbrew_decode(Rewriter* r, uint64_t f)
     old_icount = r->decInstrCount;
 
     if (r->showDecoding)
-        printf("Decoding BB %s ...\n", prettyAddress(f, dbb->fc));
+        cprintf(CABright, "Decoding BB %s ...\n", prettyAddress(r, f, dbb->fc));
 
     initDContext(&cxt, r, dbb);
 
@@ -2542,8 +2543,7 @@ DBB* dbrew_decode(Rewriter* r, uint64_t f)
     dbb->size = cxt.off;
 
     if (r->showDecoding)
-        dbrew_print_decoded(dbb, r->printBytes);
+        dbrew_print_decoded(dbb, r, r->printBytes);
 
     return dbb;
 }
-

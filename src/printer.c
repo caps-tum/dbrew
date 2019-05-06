@@ -26,7 +26,7 @@
 
 #include "instr.h"
 #include "common.h"
-
+#include "introspect.h"
 
 static
 bool opTypeVisible(Operand* o)
@@ -270,8 +270,11 @@ const char* regName(Reg r)
 }
 
 
-char* prettyAddress(uint64_t a, FunctionConfig* fc)
+
+char* prettyAddress(Rewriter* r, uint64_t a, FunctionConfig* fc)
 {
+    // TODO: Make separate, simpler function for when we know that we won't get
+    // a name
     static char buf[100];
 
     if (fc) {
@@ -284,22 +287,37 @@ char* prettyAddress(uint64_t a, FunctionConfig* fc)
             if (mrc->name) {
                 if (a == mrc->start) {
                     sprintf(buf, "%s", mrc->name);
+                    //sprintf(buf, "0x%lx <%s>", a, mrc->name);
                     return buf;
                 }
                 else if ((a > mrc->start) && (a < mrc->start + mrc->size)) {
                     sprintf(buf, "%s+%ld", mrc->name, a - mrc->start);
+
+                    //sprintf(buf, "0x%lx <%s+%ld>", a, mrc->name, a - mrc->start);
                     return buf;
                 }
             }
             mrc = mrc->next;
         }
     }
+
+    // If none found, then try getting the info from elf
+    AddrSymInfo info;
+    if (r && addrToSym(r, a, &info)) {
+        if (info.offset > 0) {
+            sprintf(buf, "0x%lx <%s+%ld>", a, info.name, info.offset);
+        } else {
+            sprintf(buf, "0x%lx <%s>", a, info.name);
+        }
+        return buf;
+    }
+
     sprintf(buf, "0x%lx", a);
     return buf;
 }
 
 // if <fc> is not-null, use it to print immediates/displacement
-char* op2string(Operand* o, Instr* instr, FunctionConfig* fc)
+char* op2string(Operand* o, Instr* instr, Rewriter* r, FunctionConfig* fc)
 {
     static char buf[30];
     int off = 0;
@@ -366,11 +384,11 @@ char* op2string(Operand* o, Instr* instr, FunctionConfig* fc)
             break;
         default: assert(0);
         }
-        off += sprintf(buf, "$%s", prettyAddress(val, fc));
+        off += sprintf(buf, "$%s", prettyAddress(r, val, fc));
         break;
 
     case OT_Imm64:
-        off += sprintf(buf, "$%s", prettyAddress(o->val, fc));
+        off += sprintf(buf, "$%s", prettyAddress(r, o->val, fc));
         break;
 
     case OT_Ind8:
@@ -396,7 +414,7 @@ char* op2string(Operand* o, Instr* instr, FunctionConfig* fc)
             if (val & (1ul<<63))
                 off += sprintf(buf+off, "-0x%lx", (~val)+1);
             else
-                off += sprintf(buf+off, "%s", prettyAddress(val, fc));
+                off += sprintf(buf+off, "%s", prettyAddress(r, val, fc));
         }
         if ((o->scale == 0) || (o->ireg.rt == RT_None)) {
             if (o->reg.rt != RT_None)
@@ -625,7 +643,7 @@ const char* instrName(InstrType it, int* pOpCount)
     return n;
 }
 
-char* instr2string(Instr* instr, int align, FunctionConfig* fc)
+char* instr2string(Instr* instr, int align, Rewriter* r, FunctionConfig* fc)
 {
     static char buf[100];
     const char* n;
@@ -710,7 +728,7 @@ char* instr2string(Instr* instr, int align, FunctionConfig* fc)
         assert(instr->src.type == OT_None);
         assert(instr->src2.type == OT_None);
         off += sprintf(buf+off, " %s",
-                       op2string(&(instr->dst), instr, fc));
+                       op2string(&(instr->dst), instr, r, fc));
         break;
 
     case OF_2:
@@ -718,9 +736,9 @@ char* instr2string(Instr* instr, int align, FunctionConfig* fc)
         assert(instr->src.type != OT_None);
         assert(instr->src2.type == OT_None);
         off += sprintf(buf+off, " %s",
-                       op2string(&(instr->src), instr, fc));
+                       op2string(&(instr->src), instr, r, fc));
         off += sprintf(buf+off, ",%s",
-                       op2string(&(instr->dst), instr, fc));
+                       op2string(&(instr->dst), instr, r, fc));
         break;
 
     case OF_3:
@@ -728,11 +746,11 @@ char* instr2string(Instr* instr, int align, FunctionConfig* fc)
         assert(instr->src.type != OT_None);
         assert(instr->src2.type != OT_None);
         off += sprintf(buf+off, " %s",
-                       op2string(&(instr->src2), instr, fc));
+                       op2string(&(instr->src2), instr, r, fc));
         off += sprintf(buf+off, ",%s",
-                       op2string(&(instr->src), instr, fc));
+                       op2string(&(instr->src), instr, r, fc));
         off += sprintf(buf+off, ",%s",
-                       op2string(&(instr->dst), instr, fc));
+                       op2string(&(instr->dst), instr, r, fc));
         break;
 
     default: assert(0);
@@ -755,20 +773,20 @@ char* bytes2string(Instr* instr, int start, int count)
     return buf;
 }
 
-void dbrew_print_decoded(DBB* bb, bool printBytes)
+void dbrew_print_decoded(DBB* bb, Rewriter* r, bool printBytes)
 {
     int i;
     for(i = 0; i < bb->count; i++) {
         Instr* instr = bb->instr + i;
-        printf("  %18s: ", prettyAddress(instr->addr, bb->fc));
+        printf("  %18s: ", prettyAddress(r, instr->addr, bb->fc));
         if (printBytes)
             printf("%s ", bytes2string(instr, 0, 7));
-        printf(" %s\n", instr2string(instr, 1, bb->fc));
+        printf(" %s\n", instr2string(instr, 1, r, bb->fc));
         if (printBytes && (instr->len > 7))
-            printf("  %18s: %s\n", prettyAddress(instr->addr + 7, bb->fc),
+            printf("  %18s: %s\n", prettyAddress(r, instr->addr + 7,bb->fc),
                    bytes2string(instr, 7, 7));
         if (printBytes && (instr->len > 14))
-            printf("  %18s: %s\n", prettyAddress(instr->addr + 14, bb->fc),
+            printf("  %18s: %s\n", prettyAddress(r, instr->addr + 14, bb->fc),
                    bytes2string(instr, 14, 7));
     }
 }
@@ -778,8 +796,8 @@ void printDecodedBBs(Rewriter* r)
     int i;
     for(i=0; i< r->decBBCount; i++) {
         printf("BB %s (%d instructions):\n",
-               prettyAddress(r->decBB[i].addr, r->decBB[i].fc),
+               prettyAddress(0, r->decBB[i].addr, r->decBB[i].fc),
                r->decBB[i].count);
-        dbrew_print_decoded(r->decBB + i, r->printBytes);
+        dbrew_print_decoded(r->decBB + i, 0, r->printBytes);
     }
 }

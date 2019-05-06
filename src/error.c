@@ -123,7 +123,7 @@ const char *decodeErrorContext(Error* e)
 
     assert(e->em == EM_Decoder);
     sprintf(buf, "decoding BB %s+%d",
-            prettyAddress(de->dbb->addr, de->dbb->fc), de->offset);
+            prettyAddress(0, de->dbb->addr, de->dbb->fc), de->offset);
 
     return buf;
 }
@@ -148,7 +148,7 @@ const char *generateErrorContext(Error* e)
     else
         sprintf(buf, "instr %d '%s' in BB (%s)",
                 ge->offset,
-                instr2string(ge->cbb->instr + ge->offset, 0, 0),
+                instr2string(ge->cbb->instr + ge->offset, 0, 0, 0),
                 cbb_prettyName(ge->cbb));
 
     return buf;
