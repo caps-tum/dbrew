@@ -251,16 +251,16 @@ dbrew_llvm_backend(Rewriter* rewriter)
     for (int i = 0; i < rewriter->capBBCount; i++)
     {
         CBB* cbb = rewriter->capBB + i;
-        LLBasicBlock* bb = ll_func_add_block(function->func, (size_t) cbb->generatorData);
+        uint64_t block_addr = (size_t) cbb->generatorData;
 
         for (int j = 0; j < cbb->count; j++)
         {
             lldbrew_convert_instr(cbb->instr + j, &instr);
-            ll_basic_block_add_inst(bb, &instr);
+            ll_func_add_inst(function->func, block_addr, &instr);
         }
         lldbrew_convert_cbb(cbb, &instr);
         if (instr.type != LL_INS_RET)
-            ll_basic_block_add_inst(bb, &instr);
+            ll_func_add_inst(function->func, block_addr, &instr);
     }
 
     LLVMTypeRef pi8 = LLVMPointerType(LLVMInt8TypeInContext(state->context), 0);
