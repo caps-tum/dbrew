@@ -1066,10 +1066,14 @@ void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
 
     assert(!shouldBeStack);
     initMetaState(&(v->state), CS_DYNAMIC);
+    v->type = t;
+
+    if (!csIsStatic(addr->state.cState))
+        return; // never load data from an unknown address
+
     // explicit request to make memory access result static
     if (addr->state.cState == CS_STATIC2) v->state.cState = CS_STATIC2;
 
-    v->type = t;
     switch(t) {
     case VT_8:  v->val = *(uint8_t*) addr->val; break;
     case VT_16: v->val = *(uint16_t*) addr->val; break;
