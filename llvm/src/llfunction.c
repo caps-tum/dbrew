@@ -163,9 +163,10 @@ ll_function_new_definition(LLFunctionConfig* config, LLEngine* state)
 {
     LLFunction* function = ll_function_new(state);
     function->name = config->name;
-    function->func = ll_func(state->module);
-    ll_func_enable_fast_math(function->func, config->fastMath);
-    ll_func_set_global_base(function->func, 0x1000, state->globalBase);
+    function->cfg = ll_config_new();
+    ll_config_enable_fast_math(function->cfg, config->fastMath);
+    ll_config_set_global_base(function->cfg, 0x1000, state->globalBase);
+    function->func = ll_func_new(state->module, function->cfg);
     return function;
 }
 
@@ -305,6 +306,7 @@ ll_function_dispose(LLFunction* function)
 {
     if (function->func != NULL)
     {
+        ll_config_free(function->cfg);
         ll_func_dispose(function->func);
     }
 

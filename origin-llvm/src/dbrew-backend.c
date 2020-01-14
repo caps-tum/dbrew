@@ -49,7 +49,7 @@ static LLInstrType _llinst_lut[IT_Max] = {
     [IT_SHL] = LL_INS_SHL,
     [IT_SHR] = LL_INS_SHR,
     [IT_SAR] = LL_INS_SAR,
-    [IT_CLTQ] = LL_INS_CLTQ,
+    [IT_CLTQ] = LL_INS_CSEP,
     [IT_CMOVO] = LL_INS_CMOVO,
     [IT_CMOVNO] = LL_INS_CMOVNO,
     [IT_CMOVC] = LL_INS_CMOVC,
@@ -181,6 +181,7 @@ convert_operand(Operand* dbo, LLInstrOp* llo)
         llo->ireg = convert_reg(dbo->ireg);
     llo->seg = LL_RI_None; // TODO!
     llo->size = opTypeWidth(dbo) / 8;
+    llo->addrsize = 8; // TODO: respect 67h prefix
 }
 
 static void

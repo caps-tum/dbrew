@@ -49,6 +49,7 @@ struct LLFunction {
      **/
     LLVMValueRef llvmFunction;
 
+    LLConfig* cfg;
     LLFunc* func;
 };
 
