@@ -1389,19 +1389,30 @@ void applyStaticToInd(Operand* o, EmuState* es)
     if (!opIsInd(o)) return;
 
     if ((o->reg.rt == RT_GP64) && msIsStatic(es->reg_state[o->reg.ri])) {
-        o->val += es->reg[o->reg.ri];
-        o->reg.rt = RT_None;
+        int64_t new_val = o->val + es->reg[o->reg.ri];
+        if (new_val >= -(1ll << 31) && new_val < (1ll << 31)) {
+            o->val = new_val;
+            o->reg.rt = RT_None;
+        }
     }
     if ((o->reg.rt == RT_IP) && msIsStatic(es->regIP_state)) {
-        o->val += es->regIP;
-        o->reg.rt = RT_None;
+        int64_t new_val = o->val + es->regIP;
+        if (new_val >= -(1ll << 31) && new_val < (1ll << 31)) {
+            o->val = new_val;
+            o->reg.rt = RT_None;
+        } else {
+            assert(false && "rip-relative addressing not encodable");
+        }
     }
 
     if (o->scale > 0) {
         assert(o->ireg.rt == RT_GP64);
         if (msIsStatic(es->reg_state[o->ireg.ri])) {
-            o->val += o->scale * es->reg[o->ireg.ri];
-            o->scale = 0;
+            int64_t new_val = o->val + o->scale * es->reg[o->ireg.ri];
+            if (new_val >= -(1ll << 31) && new_val < (1ll << 31)) {
+                o->val = new_val;
+                o->scale = 0;
+            }
         }
     }
 }
