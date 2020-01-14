@@ -17,6 +17,8 @@
  * along with DBrew.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _DEFAULT_SOURCE
+
 #include "buffers.h"
 
 #include <assert.h>

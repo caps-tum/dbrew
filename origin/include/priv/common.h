@@ -25,6 +25,7 @@
 #include "expr.h"
 #include "instr.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define debug(format, ...) printf("!DBG %s: " format "\n", __PRETTY_FUNCTION__, ##__VA_ARGS__)
@@ -171,6 +172,7 @@ typedef enum _VectorizeReq {
 } VectorizeReq;
 
 
+bool config_is_constant(Rewriter* r, uint64_t addr, size_t size);
 FunctionConfig* config_find_function(Rewriter* r, uint64_t f);
 
 

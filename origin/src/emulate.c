@@ -1051,9 +1051,10 @@ void getRegValue(EmuValue* v, EmuState* es, Reg r, ValType t)
 }
 
 static
-void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
+void getMemValue(RContext* c, EmuValue* v, EmuValue* addr, ValType t,
                  bool shouldBeStack)
 {
+    EmuState* es = c->r->es;
     EmuValue off;
     int isOnStack;
 
@@ -1073,6 +1074,9 @@ void getMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
 
     // explicit request to make memory access result static
     if (addr->state.cState == CS_STATIC2) v->state.cState = CS_STATIC2;
+    if (addr->state.cState == CS_STATIC &&
+            config_is_constant(c->r, addr->val, opTypeWidth(getImmOp(t, 0))/8))
+        v->state.cState = CS_STATIC;
 
     switch(t) {
     case VT_8:  v->val = *(uint8_t*) addr->val; break;
@@ -1227,8 +1231,9 @@ void getOpAddr(EmuValue* v, EmuState* es, Operand* o)
 
 // returned value v should be casted to expected type (8/16/32 bit)
 static
-void getOpValue(EmuValue* v, EmuState* es, Operand* o)
+void getOpValue(RContext* c, EmuValue* v, Operand* o)
 {
+    EmuState* es = c->r->es;
     EmuValue addr;
 
     switch(o->type) {
@@ -1282,7 +1287,7 @@ void getOpValue(EmuValue* v, EmuState* es, Operand* o)
         }
         else {
             getOpAddr(&addr, es, o);
-            getMemValue(v, &addr, es, opValType(o), 0);
+            getMemValue(c, v, &addr, opValType(o), 0);
         }
         return;
 
@@ -1480,7 +1485,7 @@ void captureIDiv(RContext* c, Instr* orig, CaptureState resCState, EmuState* es)
     if (csIsStatic(resCState)) return;
 
 
-    getOpValue(&v, es, &(orig->dst));
+    getOpValue(c, &v, &(orig->dst));
     if (msIsStatic(v.state)) {
         // divide by 1 can be skipped
         if (v.val == 1) return;
@@ -1539,7 +1544,7 @@ void captureBinaryOp(RContext* c, Instr* orig, EmuState* es, EmuValue* res)
 
     // if dst (= 2.op) known/constant and a reg/stack, we need to update it
     // example: %eax += %ebx with %eax known to be 5  =>  %eax=5, %eax+=%ebx
-    getOpValue(&opval, es, &(orig->dst));
+    getOpValue(c, &opval, &(orig->dst));
     if (opStateIsTracked(es, &(orig->dst)) && msIsStatic(opval.state)) {
 
         // - instead of adding src to 0, we can move the src to dst
@@ -1561,7 +1566,7 @@ void captureBinaryOp(RContext* c, Instr* orig, EmuState* es, EmuValue* res)
     }
 
     o = &(orig->src);
-    getOpValue(&opval, es, &(orig->src));
+    getOpValue(c, &opval, &(orig->src));
     if (msIsStatic(opval.state)) {
         // if 1st source (=src) is known/constant and a reg, make it immediate
 
@@ -1635,7 +1640,7 @@ void captureCmp(RContext* c, Instr* orig, EmuState* es, CaptureState cs)
 
     if (csIsStatic(cs)) return;
 
-    getOpValue(&opval, es, &(orig->dst));
+    getOpValue(c, &opval, &(orig->dst));
     if (msIsStatic(opval.state)) {
         // cannot replace dst with imm: no such encoding => update dst
         initBinaryInstr(&i, IT_MOV, opval.type,
@@ -1644,7 +1649,7 @@ void captureCmp(RContext* c, Instr* orig, EmuState* es, CaptureState cs)
     }
 
     o = &(orig->src);
-    getOpValue(&opval, es, &(orig->src));
+    getOpValue(c, &opval, &(orig->src));
     if (msIsStatic(opval.state))
         o = getImmOp(opval.type, opval.val);
 
@@ -1908,7 +1913,7 @@ void emulateRet(RContext* c, Instr* instr)
 
         // pop return address from stack
         addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
-        getMemValue(&v, &addr, es, VT_64, 1);
+        getMemValue(c, &v, &addr, VT_64, 1);
         es->reg[RI_SP] += 8;
 
         if (v.val != es->ret_stack[es->depth]) {
@@ -1941,8 +1946,8 @@ void processInstr(RContext* c, Instr* instr)
     switch(instr->type) {
 
     case IT_ADD:
-        getOpValue(&v1, es, &(instr->dst));
-        getOpValue(&v2, es, &(instr->src));
+        getOpValue(c, &v1, &(instr->dst));
+        getOpValue(c, &v2, &(instr->src));
 
         vt = opValType(&(instr->dst));
         // sign-extend src/v2 if needed
@@ -1980,7 +1985,7 @@ void processInstr(RContext* c, Instr* instr)
 
     case IT_CALL: {
         // TODO: keep call. For now, we always inline
-        getOpValue(&v1, es, &(instr->dst));
+        getOpValue(c, &v1, &(instr->dst));
         if (es->depth >= MAX_CALLDEPTH) {
             setEmulatorError(c, instr, ET_BufferOverflow,
                              "Call depth too deep");
@@ -2066,7 +2071,7 @@ void processInstr(RContext* c, Instr* instr)
         default: assert(0);
         }
         assert(opValType(&(instr->src)) == opValType(&(instr->dst)));
-        getOpValue(&vres, es, &(instr->src));
+        getOpValue(c, &vres, &(instr->src));
         captureCMov(c, instr, es, &vres, es->flag_state[ft], cond);
         // FIXME? if cond state unknown, set destination state always to unknown
         if (cond == true) {
@@ -2077,8 +2082,8 @@ void processInstr(RContext* c, Instr* instr)
     }
 
     case IT_CMP:
-        getOpValue(&v1, es, &(instr->dst));
-        getOpValue(&v2, es, &(instr->src));
+        getOpValue(c, &v1, &(instr->dst));
+        getOpValue(c, &v2, &(instr->src));
 
         vt = opValType(&(instr->dst));
         // sign-extend src/v2 if needed
@@ -2092,7 +2097,7 @@ void processInstr(RContext* c, Instr* instr)
         break;
 
     case IT_DEC:
-        getOpValue(&v1, es, &(instr->dst));
+        getOpValue(c, &v1, &(instr->dst));
 
         vres.type = v1.type;
         initMetaState(&(vres.state), v1.state.cState);
@@ -2118,12 +2123,12 @@ void processInstr(RContext* c, Instr* instr)
 
     case IT_IMUL:
         if (instr->form == OF_2) {
-            getOpValue(&v1, es, &(instr->dst));
-            getOpValue(&v2, es, &(instr->src));
+            getOpValue(c, &v1, &(instr->dst));
+            getOpValue(c, &v2, &(instr->src));
             assert(opIsGPReg(&(instr->dst)));
         } else if (instr->form == OF_3) {
-            getOpValue(&v1, es, &(instr->src));
-            getOpValue(&v2, es, &(instr->src2));
+            getOpValue(c, &v1, &(instr->src));
+            getOpValue(c, &v2, &(instr->src2));
             assert(opIsGPReg(&(instr->dst)));
         } else {
             assert(false && "IMUL_1 emulation not implemented");
@@ -2167,7 +2172,7 @@ void processInstr(RContext* c, Instr* instr)
         uint64_t v, quRes, modRes;
 
         // FIXME: Set flags!
-        getOpValue(&v1, es, &(instr->dst));
+        getOpValue(c, &v1, &(instr->dst));
         // TODO: raise "division by 0" exception
         assert(v1.val != 0);
         cs = combineState(es->reg_state[RI_D].cState,
@@ -2205,7 +2210,7 @@ void processInstr(RContext* c, Instr* instr)
         break;
     }
     case IT_INC:
-        getOpValue(&v1, es, &(instr->dst));
+        getOpValue(c, &v1, &(instr->dst));
 
         vres.type = v1.type;
         initMetaState(&(vres.state), v1.state.cState);
@@ -2409,7 +2414,7 @@ void processInstr(RContext* c, Instr* instr)
         break;
 
     case IT_JMPI:
-        getOpValue(&v1, es, &(instr->dst));
+        getOpValue(c, &v1, &(instr->dst));
 
         switch(instr->dst.type) {
         case OT_Reg64: break;
@@ -2478,7 +2483,7 @@ void processInstr(RContext* c, Instr* instr)
     case IT_MOV:
     case IT_MOVSX: { // converting move
         ValType dst_t = opValType(&(instr->dst));
-        getOpValue(&vres, es, &(instr->src));
+        getOpValue(c, &vres, &(instr->src));
 
         switch(instr->src.type) {
         case OT_Reg8:
@@ -2557,7 +2562,7 @@ void processInstr(RContext* c, Instr* instr)
         break;
 
     case IT_NEG:
-        getOpValue(&v1, es, &(instr->dst));
+        getOpValue(c, &v1, &(instr->dst));
         switch(instr->dst.type) {
         case OT_Reg32:
         case OT_Ind32:
@@ -2584,7 +2589,7 @@ void processInstr(RContext* c, Instr* instr)
         switch(instr->dst.type) {
         case OT_Reg16:
             addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
-            getMemValue(&v1, &addr, es, VT_16, 1);
+            getMemValue(c, &v1, &addr, VT_16, 1);
             setOpValue(&v1, es, &(instr->dst));
             setOpState(v1.state, es, &(instr->dst));
             es->reg[RI_SP] += 2;
@@ -2594,7 +2599,7 @@ void processInstr(RContext* c, Instr* instr)
 
         case OT_Reg64:
             addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
-            getMemValue(&v1, &addr, es, VT_64, 1);
+            getMemValue(c, &v1, &addr, VT_64, 1);
             setOpValue(&v1, es, &(instr->dst));
             setOpState(v1.state, es, &(instr->dst));
             es->reg[RI_SP] += 8;
@@ -2615,7 +2620,7 @@ void processInstr(RContext* c, Instr* instr)
         case OT_Imm16:
             es->reg[RI_SP] -= 2;
             addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
-            getOpValue(&vres, es, &(instr->dst));
+            getOpValue(c, &vres, &(instr->dst));
             setMemValue(&vres, &addr, es, VT_16, 1);
             setMemState(es, &addr, VT_16, vres.state, 1);
             if (!msIsStatic(vres.state))
@@ -2629,7 +2634,7 @@ void processInstr(RContext* c, Instr* instr)
         case OT_Imm32:
             es->reg[RI_SP] -= 8;
             addr = emuValue(es->reg[RI_SP], VT_64, es->reg_state[RI_SP]);
-            getOpValue(&vres, es, &(instr->dst));
+            getOpValue(c, &vres, &(instr->dst));
 
             // Sign-extend 8-bit and 32-bit immediate values to 64-bit
             switch(vres.type) {
@@ -2666,8 +2671,8 @@ void processInstr(RContext* c, Instr* instr)
     case IT_SHR:
     case IT_SAR:
         // FIXME: do flags (shifting into CF, set OF)
-        getOpValue(&v1, es, &(instr->dst));
-        getOpValue(&v2, es, &(instr->src));
+        getOpValue(c, &v1, &(instr->dst));
+        getOpValue(c, &v2, &(instr->src));
 
         vt = opValType(&(instr->dst));
         vres.type = vt;
@@ -2724,8 +2729,8 @@ void processInstr(RContext* c, Instr* instr)
         break;
 
     case IT_SUB:
-        getOpValue(&v1, es, &(instr->dst));
-        getOpValue(&v2, es, &(instr->src));
+        getOpValue(c, &v1, &(instr->dst));
+        getOpValue(c, &v2, &(instr->src));
 
         vt = opValType(&(instr->dst));
         // sign-extend src/v2 if needed
@@ -2766,8 +2771,8 @@ void processInstr(RContext* c, Instr* instr)
         break;
 
     case IT_TEST:
-        getOpValue(&v1, es, &(instr->dst));
-        getOpValue(&v2, es, &(instr->src));
+        getOpValue(c, &v1, &(instr->dst));
+        getOpValue(c, &v2, &(instr->src));
 
         assert(v1.type == v2.type);
         cs = setFlagsBit(es, IT_AND, &v1, &v2, false);
@@ -2777,8 +2782,8 @@ void processInstr(RContext* c, Instr* instr)
     case IT_XOR:
     case IT_OR:
     case IT_AND:
-        getOpValue(&v1, es, &(instr->dst));
-        getOpValue(&v2, es, &(instr->src));
+        getOpValue(c, &v1, &(instr->dst));
+        getOpValue(c, &v2, &(instr->src));
 
         assert(v1.type == v2.type);
         cs = setFlagsBit(es, instr->type, &v1, &v2,

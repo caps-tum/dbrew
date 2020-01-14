@@ -136,6 +136,18 @@ FunctionConfig* fc_get(CaptureConfig* cc, uint64_t func)
 
 // DBrew internal, called by other modules
 
+bool config_is_constant(Rewriter* r, uint64_t addr, size_t size)
+{
+    CaptureConfig* cc = cc_get(r);
+    MemRangeConfig* mrc = mrc_find(cc, MR_ConstantData, addr);
+    if (mrc) {
+        assert(mrc->type == MR_ConstantData);
+        if (mrc->start + mrc->size >= addr + size)
+            return true;
+    }
+    return false;
+}
+
 FunctionConfig* config_find_function(Rewriter* r, uint64_t f)
 {
     CaptureConfig* cc = cc_get(r);
