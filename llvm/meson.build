@@ -1,5 +1,5 @@
 
-libllvm = dependency('llvm', version: ['>=5', '<9'])
+libllvm = dependency('llvm', version: ['>=8', '<=9'])
 dbrewllvm_flags = ['-DLL_LLVM_MAJOR='+libllvm.version().split('.')[0]]
 
 rellume = subproject('rellume')
