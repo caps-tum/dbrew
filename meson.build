@@ -1,4 +1,4 @@
-project('libdbrew', ['c', 'cpp'], default_options: ['buildtype=debugoptimized', 'warning_level=3', 'c_std=gnu99', 'cpp_std=c++14'])
+project('libdbrew', ['c', 'cpp'], default_options: ['buildtype=debugoptimized', 'warning_level=3', 'c_std=gnu99', 'cpp_std=c++17'])
 
 if get_option('warning_level').to_int() >= 3
   add_project_arguments(['-Wmissing-field-initializers',
