@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include <dbrew.h>
-#include <dbrew-llvm.h>
 #include <dbrew-backend.h>
 #include <../benchmark/timer.h>
 
@@ -103,28 +102,12 @@ main(void)
     dbrew_optverbose(r, false);
     dbrew_verbose(r, false, false, false);
 
-    LLFunctionConfig config = {
-        .name = "spmv",
-        .stackSize = 0,
-        .fastMath = true,
-        .signature = 011113 // void (i8* noalias, i8* noalias, i8* noalias)
-    };
-
-    LLEngine* state = ll_engine_init();
-    LLFunction* fn = ll_decode_function((uintptr_t) spmv_asm, &config, state);
-    LLFunction* fnspec = ll_function_specialize(fn, 0, (uintptr_t) rawMatrix, sizeof(rawMatrix), state);
-
-    ll_engine_optimize(state, 3);
-    // ll_engine_dump(state);
-    // ll_engine_disassemble(state);
-
     SpMatrix* mat = (SpMatrix*) rawMatrix;
     double* v = (double*) rawVector;
     double* rv1 = calloc(sizeof(double), mat->height);
     double* rv2 = calloc(sizeof(double), mat->height);
     double* rv3 = calloc(sizeof(double), mat->height);
 
-    uint8_t* (*spmv_spec)(SpMatrix*, double*, double*) = ll_function_get_pointer(fnspec, state);
     uint8_t* (*spmv_dbrew)(SpMatrix*, double*, double*) = (void*) dbrew_rewrite(r, mat, v, rv1);
     uint8_t* (*spmv_dbrew_llvm)(SpMatrix*, double*, double*) = (void*) dbrew_llvm_rewrite(r, mat, v, rv1);
 
@@ -144,19 +127,6 @@ main(void)
     JTimerStop(&timer);
     printf("Time: %lf secs\n", JTimerRead(&timer));
     for (size_t i = 0; i < mat->height; i++) printf(" %lf", rv1[i]);
-    printf("\n");
-
-    // LLVM fixed
-    // Running time can be reduced by 38% when using a small code model, which
-    // leads to RIP-relative addressing and therefore much smaller code.
-    // Add "options.CodeModel = LLVMCodeModelSmall;" to llengine.c. Note that
-    // any memory access via non-parametric addresses will cause a segfault.
-    JTimerInit(&timer);
-    JTimerCont(&timer);
-    for (int i = 0; i < 10000000; i++) spmv_spec(mat, v, rv2);
-    JTimerStop(&timer);
-    printf("Time: %lf secs\n", JTimerRead(&timer));
-    for (size_t i = 0; i < mat->height; i++) printf(" %lf", rv2[i]);
     printf("\n");
 
     // DBrew

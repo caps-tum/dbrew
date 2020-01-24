@@ -84,27 +84,6 @@ dbll_support_create_mcjit_compiler(LLVMExecutionEngineRef* OutJIT, LLVMModuleRef
     return 1;
 }
 
-void
-dbll_support_inline_function(LLVMValueRef call_inst)
-{
-    llvm::CallInst* call = llvm::unwrap<llvm::CallInst>(call_inst);
-    llvm::InlineFunctionInfo ifi;
-    llvm::InlineFunction(llvm::CallSite(call), ifi);
-}
-
-/**
- * Pass arguments in environment variable DBREWLLVM_OPTS to LLVM.
- *
- * \author Alexis Engelke
- **/
-__attribute__((constructor))
-static
-void
-dbll_support_pass_arguments(void)
-{
-    llvm::cl::ParseEnvironmentOptions("dbrewllvm", "DBREWLLVM_OPTS");
-}
-
 /**
  * @}
  **/

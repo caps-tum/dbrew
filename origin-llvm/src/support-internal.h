@@ -32,7 +32,6 @@ extern "C" {
 #endif
 
 LLVMBool dbll_support_create_mcjit_compiler(LLVMExecutionEngineRef*, LLVMModuleRef, char**);
-void dbll_support_inline_function(LLVMValueRef);
 
 #ifdef __cplusplus
 }

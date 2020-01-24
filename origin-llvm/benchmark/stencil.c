@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include <dbrew.h>
-#include <dbrew-llvm.h>
 #include <dbrew-backend.h>
 
 #include "stencil-kernels.h"
@@ -230,15 +229,6 @@ benchmark_run2(const BenchmarkArgs* args)
     double* arg2;
     init_matrix(&arg1, &arg2);
 
-    LLFunctionConfig llconfig = {
-        .name = "test",
-        .stackSize = 128,
-        .fastMath = true,
-        .signature = 0211114,
-    };
-
-    LLEngine* state = NULL;
-    LLFunction* llfn = NULL;
     Rewriter* r = NULL;
 
     uintptr_t baseFunction = (uintptr_t) KERNEL(args->datatype, args->granularity);
@@ -256,11 +246,6 @@ benchmark_run2(const BenchmarkArgs* args)
         dbrew_optverbose(r, args->decodeGenerated);
     }
 
-    if (args->mode == BENCHMARK_LLVM || args->mode == BENCHMARK_LLVM_FIXED || args->mode == BENCHMARK_DBREW_LLVM_TWICE)
-    {
-        state = ll_engine_init();
-    }
-
     switch (args->mode)
     {
         case BENCHMARK_PLAIN:
@@ -275,37 +260,8 @@ benchmark_run2(const BenchmarkArgs* args)
             processedFunction = dbrew_llvm_rewrite(r, arg0, arg1, arg2, 20, KERNEL(args->datatype, GRAN_ELEM));
             break;
 
-        case BENCHMARK_LLVM:
-            llfn = ll_decode_function(baseFunction, &llconfig, state);
-            assert(llfn != NULL);
-            break;
-
-        case BENCHMARK_LLVM_FIXED:
-            llfn = ll_decode_function(baseFunction, &llconfig, state);
-            assert(llfn != NULL);
-
-            if (arg0 != NULL)
-                llfn = ll_function_specialize(llfn, 0, (uintptr_t) arg0, 0x100, state);
-            break;
-
-        case BENCHMARK_DBREW_LLVM_TWICE:
-            processedFunction = dbrew_llvm_rewrite(r, arg0, arg1, arg2, 20, KERNEL(args->datatype, GRAN_ELEM));
-
-            llfn = ll_decode_function(processedFunction, &llconfig, state);
-            assert(llfn != NULL);
-            break;
-
         default:
             abort();
-    }
-
-    if (args->mode == BENCHMARK_LLVM || args->mode == BENCHMARK_LLVM_FIXED || args->mode == BENCHMARK_DBREW_LLVM_TWICE)
-    {
-        ll_engine_optimize(state, 3);
-        processedFunction = (uintptr_t) ll_function_get_pointer(llfn, state);
-
-        if (args->decodeGenerated)
-            ll_engine_dump(state);
     }
 
     __asm__ volatile("" ::: "memory");
@@ -354,9 +310,6 @@ benchmark_run2(const BenchmarkArgs* args)
 
     free(arg1);
     free(arg2);
-
-    if (state != NULL)
-        ll_engine_dispose(state);
 
     if (r != NULL)
         dbrew_free(r);

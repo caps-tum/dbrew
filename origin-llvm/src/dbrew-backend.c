@@ -1,8 +1,19 @@
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#include <llvm-c/Analysis.h>
+#include <llvm-c/BitReader.h>
+#include <llvm-c/BitWriter.h>
 #include <llvm-c/Core.h>
+#include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/Transforms/IPO.h>
+#include <llvm-c/Transforms/Scalar.h>
+#include <llvm-c/Transforms/Vectorize.h>
+#include <llvm-c/Transforms/PassManagerBuilder.h>
 
 #include <common.h>
 #include <engine.h>
@@ -13,11 +24,90 @@
 
 #include <dbrew-backend.h>
 
-#include <llengine.h>
-#include <llengine-internal.h>
-#include <llfunction.h>
-#include <llfunction-internal.h>
+#include <support-internal.h>
 
+
+#define warn_if_reached() do { printf("!WARN %s: Code should not be reached.\n", __func__); __asm__("int3"); } while (0)
+
+typedef struct {
+    /**
+     * \brief The LLVM Context
+     **/
+    LLVMContextRef context;
+    /**
+     * \brief The LLVM Module
+     **/
+    LLVMModuleRef module;
+    /**
+     * \brief The LLVM execution engine
+     **/
+    LLVMExecutionEngineRef engine;
+
+    LLVMValueRef globalBase;
+} LLEngine;
+
+static LLEngine*
+ll_engine_init(void)
+{
+    LLEngine* state = calloc(1, sizeof(LLEngine));
+    if (state == NULL)
+        return NULL;
+
+    state->context = LLVMContextCreate();
+    state->module = LLVMModuleCreateWithNameInContext("<llengine>", state->context);
+
+    LLVMSetTarget(state->module, "x86_64-pc-linux-gnu");
+    LLVMLinkInMCJIT();
+    LLVMInitializeNativeAsmPrinter();
+    LLVMInitializeNativeTarget();
+
+    char* outerr = NULL;
+    if (dbll_support_create_mcjit_compiler(&state->engine, state->module, &outerr))
+    {
+        printf("CRITICAL Could not setup execution engine: %s", outerr);
+        free(outerr);
+        free(state);
+
+        return NULL;
+    }
+
+    // Construct global variable to avoid inttoptr instructions
+    LLVMTypeRef i8 = LLVMInt8TypeInContext(state->context);
+    state->globalBase = LLVMAddGlobal(state->module, i8, "__ll_global_base__");
+    LLVMAddGlobalMapping(state->engine, state->globalBase, (void*) 0x1000);
+
+    return state;
+}
+
+static void
+ll_engine_optimize(LLEngine* state, int level)
+{
+    LLVMPassManagerRef pm = LLVMCreatePassManager();
+    LLVMPassManagerBuilderRef pmb = LLVMPassManagerBuilderCreate();
+
+    // The standard pass pipeline doesn't include the always inliner pass.
+    LLVMAddAlwaysInlinerPass(pm);
+
+    LLVMPassManagerBuilderSetOptLevel(pmb, level);
+    LLVMPassManagerBuilderPopulateModulePassManager(pmb, pm);
+    LLVMPassManagerBuilderDispose(pmb);
+
+    // Add clean-up passes
+    LLVMAddStripSymbolsPass(pm);
+    LLVMAddStripDeadPrototypesPass(pm);
+
+    LLVMRunPassManager(pm, state->module);
+
+    LLVMDisposePassManager(pm);
+}
+
+static void
+ll_engine_dump(LLEngine* state)
+{
+    char* module = LLVMPrintModuleToString(state->module);
+    puts(module);
+    LLVMDisposeMessage(module);
+}
 
 static LLInstrType _llinst_lut[IT_Max] = {
     [IT_HINT_CALL] = LL_INS_NOP,
@@ -237,13 +327,9 @@ dbrew_llvm_backend(Rewriter* rewriter)
 {
     LLEngine* state = ll_engine_init();
 
-    LLFunctionConfig config = {
-        .stackSize = 128,
-        .signature = 026, // 6 pointer params, returns i64
-        .name = "__dbrew__"
-    };
-
-    LLFunction* function = ll_function_new_definition(&config, state);
+    LLConfig* rlcfg = ll_config_new();
+    ll_config_set_global_base(rlcfg, 0x1000, state->globalBase);
+    LLFunc* func = ll_func_new(state->module, rlcfg);
 
     LLInstr instr;
     for (int i = 0; i < rewriter->capBBCount; i++)
@@ -257,11 +343,11 @@ dbrew_llvm_backend(Rewriter* rewriter)
         for (int j = 0; j < cbb->count; j++)
         {
             lldbrew_convert_instr(cbb->instr + j, &instr);
-            ll_func_add_inst(function->func, block_addr, &instr);
+            ll_func_add_inst(func, block_addr, &instr);
         }
         lldbrew_convert_cbb(cbb, &instr);
         if (instr.type != LL_INS_RET)
-            ll_func_add_inst(function->func, block_addr, &instr);
+            ll_func_add_inst(func, block_addr, &instr);
     }
 
     LLVMTypeRef pi8 = LLVMPointerType(LLVMInt8TypeInContext(state->context), 0);
@@ -269,9 +355,9 @@ dbrew_llvm_backend(Rewriter* rewriter)
     LLVMTypeRef types[6] = {pi8, pi8, pi8, pi8, pi8, pi8};
     LLVMTypeRef fn_ty = LLVMFunctionType(i64, types, 6, false);
 
-    function->llvmFunction = ll_func_wrap_sysv(ll_func_lift(function->func), fn_ty, state->module, 128);
+    LLVMValueRef llvmFunction = ll_func_wrap_sysv(ll_func_lift(func), fn_ty, state->module, 128);
 
-    if (function->llvmFunction == NULL)
+    if (llvmFunction == NULL)
     {
         warn_if_reached();
         rewriter->generatedCodeAddr = 0;
@@ -284,7 +370,7 @@ dbrew_llvm_backend(Rewriter* rewriter)
     if (rewriter->showOptSteps)
         ll_engine_dump(state);
 
-    rewriter->generatedCodeAddr = (uintptr_t) ll_function_get_pointer(function, state);
+    rewriter->generatedCodeAddr = (uintptr_t) LLVMGetPointerToGlobal(state->engine, llvmFunction);
     rewriter->generatedCodeSize = 0;
 }
 

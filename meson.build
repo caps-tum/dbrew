@@ -27,6 +27,5 @@ endif
 add_project_arguments(['-Wno-unused-parameter'], language: 'cpp')
 
 subdir('origin')
-subdir('llvm')
 subdir('origin-llvm')
 

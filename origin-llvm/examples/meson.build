@@ -1,4 +1,4 @@
 
 executable('spmv', files('spmv.c', '../benchmark/timer.c'),
-           dependencies: [dbrew, dbreworiginllvm, dbrewllvm])
+           dependencies: [dbrew, dbreworiginllvm])
 
