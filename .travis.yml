@@ -16,24 +16,20 @@ matrix:
       env:
         - COMPILERC=gcc-7
         - COMPILERCXX=g++-7
-        - LLVM_CONFIG=llvm-config-8
       addons:
         apt:
           packages:
             - *default_pkgs
-            - llvm-8-dev
             - gcc-7
             - g++-7
     - compiler: clang
       env:
         - COMPILERC=clang-8
         - COMPILERCXX=clang++-8
-        - LLVM_CONFIG=llvm-config-8
       addons:
         apt:
           packages:
             - *default_pkgs
-            - llvm-8-dev
             - clang-8
 
 install:
@@ -41,7 +37,6 @@ install:
   - pip3 install meson
   # Hack to work around different versions of LLVM being installed and meson
   # always choosing the newest one, regardless of our specifications.
-  - ln -s /usr/bin/$LLVM_CONFIG $HOME/.local/bin/llvm-config
   - export CC=$COMPILERC
   - export CXX=$COMPILERCXX
 
