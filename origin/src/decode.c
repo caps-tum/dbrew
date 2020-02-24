@@ -1669,13 +1669,14 @@ void decode_D0(DContext* c)
 {
     c->vt = VT_8;
     parseModRM(c, c->vt, RTS_G, &c->o1, 0, &c->digit);
+    copyOperand(&c->o2, getImmOp(VT_8, 1));
     switch(c->digit) {
     case 4: // shl r/m8,1 (M1) (= sal)
-        addUnaryOp(c->r, c, IT_SHL, &c->o1); break;
+        addBinaryOp(c->r, c, IT_SHL, c->vt, &c->o1, &c->o2); break;
     case 5: // shr r/m8,1 (M1)
-        addUnaryOp(c->r, c, IT_SHR, &c->o1); break;
+        addBinaryOp(c->r, c, IT_SHR, c->vt, &c->o1, &c->o2); break;
     case 7: // sar r/m8,1 (M1)
-        addUnaryOp(c->r, c, IT_SAR, &c->o1); break;
+        addBinaryOp(c->r, c, IT_SAR, c->vt, &c->o1, &c->o2); break;
     default:
         markDecodeError(c, true, ET_BadOpcode); break;
     }
@@ -1686,13 +1687,14 @@ void decode_D1(DContext* c)
 {
     // for 16/32/64
     parseModRM(c, c->vt, RTS_G, &c->o1, 0, &c->digit);
+    copyOperand(&c->o2, getImmOp(VT_8, 1));
     switch(c->digit) {
     case 4: // shl r/m16/32/64,1 (M1) (= sal)
-        addUnaryOp(c->r, c, IT_SHL, &c->o1); break;
+        addBinaryOp(c->r, c, IT_SHL, c->vt, &c->o1, &c->o2); break;
     case 5: // shr r/m16/32/64,1 (M1)
-        addUnaryOp(c->r, c, IT_SHR, &c->o1); break;
+        addBinaryOp(c->r, c, IT_SHR, c->vt, &c->o1, &c->o2); break;
     case 7: // sar r/m16/32/64,1 (M1)
-        addUnaryOp(c->r, c, IT_SAR, &c->o1); break;
+        addBinaryOp(c->r, c, IT_SAR, c->vt, &c->o1, &c->o2); break;
     default:
         markDecodeError(c, true, ET_BadOpcode); break;
     }
