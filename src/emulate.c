@@ -2727,6 +2727,11 @@ void processInstr(RContext* c, Instr* instr)
             case IT_SAR: vres.val = ((int64_t)v1.val >> (v2.val & 63)); break;
             default: assert(0);
             }
+            // Some weird trickery for handling flags. TODO: generalize.
+            if (v2.val & 63) {
+                es->flag[FT_Zero] = vres.val == 0;
+                initMetaState(&(es->flag_state[FT_Zero]), cs);
+            }
             break;
 
         default:
