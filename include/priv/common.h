@@ -286,17 +286,17 @@ struct _Rewriter {
     CaptureConfig* cc;
     EmuState* es;
     // saved emulator states
-#define SAVEDSTATE_MAX 20
+#define SAVEDSTATE_MAX 100
     int savedStateCount;
     EmuState* savedState[SAVEDSTATE_MAX];
 
     // stack of unfinished BBs to capture
-#define CAPTURESTACK_LEN 20
+#define CAPTURESTACK_LEN 100
     int capStackTop;
     CBB* capStack[CAPTURESTACK_LEN];
 
     // capture order
-#define GENORDER_MAX 20
+#define GENORDER_MAX 100
     int genOrderCount;
     CBB* genOrder[GENORDER_MAX];
 
