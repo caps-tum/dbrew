@@ -727,6 +727,7 @@ int genMov(GContext* cxt)
         }
         break;
 
+    case OT_Ind8:
     case OT_Ind32:
     case OT_Ind64:
         switch(dst->type) {
@@ -743,6 +744,14 @@ int genMov(GContext* cxt)
                 eSrc.type = (src->type == OT_Reg32) ? OT_Reg64 : OT_Ind64;
                 // use 'movsx r64,r/m 32' (0x63)
                 return genModRM(cxt, 0x63, &eSrc, dst, VT_None, 0);
+            }
+            else if ((opValType(src) == VT_8) &&
+                     (opValType(dst) == VT_32)) {
+                Operand eSrc; // extend to 32 bit for genModRM not to fail
+                copyOperand(&eSrc, src);
+                eSrc.type = (src->type == OT_Reg8) ? OT_Reg32 : OT_Ind32;
+                // use 'movsx r32,r/m 8' (0x0fbe)
+                return genModRM(cxt, 0x0FBE, &eSrc, dst, VT_None, 0);
             }
             break;
 

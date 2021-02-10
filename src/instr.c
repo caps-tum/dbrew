@@ -633,8 +633,9 @@ void initBinaryInstr(Instr* i, InstrType it, ValType vt,
         // if we specify a value type, it must match destination
         assert(vt == opValType(o1));
         // if 2nd operand is other than immediate, types also must match
-        if (!opIsImm(o2))
-            assert(vt == opValType(o2));
+        // This does not apply to MOVSX/MOVZX
+        // if (!opIsImm(o2))
+        //     assert(vt == opValType(o2));
     }
 
     initSimpleInstr(i, it);
