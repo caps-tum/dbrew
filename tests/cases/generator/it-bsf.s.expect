@@ -1,0 +1,11 @@
+BB f1gen (10 instructions):
+               f1gen:  48 0f bc 07           bsf     (%rdi),%rax
+             f1gen+4:  4c 0f bc 0f           bsf     (%rdi),%r9
+             f1gen+8:  0f bc 07              bsf     (%rdi),%eax
+            f1gen+11:  44 0f bc 0f           bsf     (%rdi),%r9d
+            f1gen+15:  66 0f bc 07           bsf     (%rdi),%ax
+            f1gen+19:  66 44 0f bc 0f        bsf     (%rdi),%r9w
+            f1gen+24:  48 0f bc c3           bsf     %rbx,%rax
+            f1gen+28:  0f bc c3              bsf     %ebx,%eax
+            f1gen+31:  66 0f bc c3           bsf     %bx,%ax
+            f1gen+35:  c3                    ret    

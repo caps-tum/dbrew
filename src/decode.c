@@ -2453,6 +2453,8 @@ void initDecodeTables(void)
 
     // 0x0FBC: bsf r,r/m 16/32/64 (RM): bit scan forward
     setOpc(0x0FBC, IT_BSF, VT_Def, parseRM, addBInstr, 0);
+    // 0x0FB bsf r,r/m 16/32/64 (RM): bit scan reverse
+    setOpc(0x0FBD, IT_BSR, VT_Def, parseRM, addBInstr, 0);
 
     setOpcH(0x0FBE, decode0F_BE); // movsx r16/32/64,r/m8 (RM)
     setOpcH(0x0FBF, decode0F_BF); // movsx r32/64,r/m16 (RM)

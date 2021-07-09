@@ -1715,6 +1715,44 @@ int genCmp(GContext* cxt)
 }
 
 static
+int genBsfBsr(GContext* c, int opc)
+{
+    Operand* src =  &(c->instr->src);
+    Operand* dst =  &(c->instr->dst);
+
+    switch (dst->type) {
+    case OT_Reg16:
+    case OT_Reg32:
+    case OT_Reg64:
+        switch (src->type) {
+        case OT_Reg16:
+        case OT_Ind16:
+        case OT_Reg32:
+        case OT_Ind32:
+        case OT_Reg64:
+        case OT_Ind64:
+            return genModRM(c, 0x0F00 | opc, src, dst, c->instr->vtype, GEN_66OnVT16);
+        default:
+             return -1;
+        }
+    default:
+        return -1;
+    }
+}
+
+static
+int genBsf(GContext* c)
+{
+    return genBsfBsr(c, 0xBC);
+}
+
+static
+int genBsr(GContext* c)
+{
+    return genBsfBsr(c, 0xBD);
+}
+
+static
 int genVec(GContext* c)
 {
     Instr* instr = c->instr;
@@ -1836,6 +1874,12 @@ GenerateError* generate(Rewriter* r, CBB* cbb)
             switch(instr->type) {
             case IT_ADD:
                 used = genAdd(&cxt);
+                break;
+            case IT_BSF:
+                used = genBsf(&cxt);
+                break;
+            case IT_BSR:
+                used = genBsr(&cxt);
                 break;
             case IT_CLTQ:
                 used = genCltq(&cxt);

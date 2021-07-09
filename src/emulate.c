@@ -1994,6 +1994,62 @@ void processInstr(RContext* c, Instr* instr)
         setOpState(vres.state, es, &(instr->dst));
         break;
 
+    case IT_BSF:
+    case IT_BSR:
+        getOpValue(&v1, es, &(instr->dst));
+        getOpValue(&v2, es, &(instr->src));
+        if (v2.val) {
+            uint32_t val32 = (uint32_t) v2.val;
+            uint64_t val64 = v2.val;
+            switch (v2.type) {
+            case VT_32:
+                switch (instr->type) {
+                case IT_BSF:
+                    v1.val = __builtin_clz(val32);
+                    break;
+                case IT_BSR:
+                    v1.val = __builtin_ctz(val32);
+                    break;
+                default:
+                    assert(0);
+                }
+                break;
+
+            case VT_64:
+                switch (instr->type) {
+                case IT_BSF:
+                    v1.val = __builtin_clzl(val64);
+                    break;
+                case IT_BSR:
+                    v1.val = __builtin_ctzl(val64);
+                    break;
+                default:
+                    assert(0);
+                }
+                break;
+
+            default:
+                assert(0);
+            }
+            es->flag[FT_Zero] = 0;
+        } else {
+            // Intel manual says result is undefined when src reg is 0 and AMD
+            // manual says dest register remains unchanged, so levaing dest unchanged.
+            es->flag[FT_Zero] = 1;
+        }
+        // printf("PSF op result: %ld\n", v1.val);
+        //cs = combineState(v1.state.cState, v2.state.cState, 0);
+
+        // v1 gets value from v2, so it inherits its capture state
+        initMetaState(&(v1.state), v2.state.cState);
+        if (!msIsStatic(v2.state)) {
+            captureBinaryOp(c,instr, es, &v1);
+        }
+        setFlagsState(es, FS_Zero, v1.state.cState);
+        setOpValue(&v1, es, &(instr->dst));
+        setOpState(v1.state, es, &(instr->dst));
+        break;
+
     case IT_CALL: {
         // TODO: keep call. For now, we always inline
         getOpValue(c, &v1, &(instr->dst));

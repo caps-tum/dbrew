@@ -1,0 +1,11 @@
+BB f1 (10 instructions):
+                  f1:  48 0f bd 07           bsr     (%rdi),%rax
+                f1+4:  4c 0f bd 0f           bsr     (%rdi),%r9
+                f1+8:  0f bd 07              bsr     (%rdi),%eax
+               f1+11:  44 0f bd 0f           bsr     (%rdi),%r9d
+               f1+15:  66 0f bd 07           bsr     (%rdi),%ax
+               f1+19:  66 44 0f bd 0f        bsr     (%rdi),%r9w
+               f1+24:  48 0f bd c3           bsr     %rbx,%rax
+               f1+28:  0f bd c3              bsr     %ebx,%eax
+               f1+31:  66 0f bd c3           bsr     %bx,%ax
+               f1+35:  c3                    ret    

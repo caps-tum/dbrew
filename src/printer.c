@@ -505,6 +505,7 @@ const char* instrName(InstrType it, int* pOpCount)
     case IT_CMP:     n = "cmp";     opCount = 2; break;
     case IT_TEST:    n = "test";    opCount = 2; break;
     case IT_BSF:     n = "bsf";     opCount = 2; break;
+    case IT_BSR:     n = "bsr";     opCount = 2; break;
     case IT_PXOR:    n = "pxor";    opCount = 2; break;
     case IT_PADDQ:   n = "paddq";   opCount = 2; break;
     case IT_MOVSS:   n = "movss";   opCount = 2; break;

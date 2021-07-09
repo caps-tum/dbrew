@@ -1,4 +1,4 @@
-//!driver = test-driver-decode.c
+//!driver = test-driver-gen.c
 .intel_syntax noprefix
     .text
     .globl  f1

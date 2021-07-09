@@ -131,7 +131,7 @@ typedef enum _InstrType {
     IT_ADD, IT_ADC, IT_SUB, IT_SBB,
     IT_IMUL, IT_IDIV1, IT_MUL, IT_DIV,
     IT_XOR, IT_AND, IT_OR,
-    IT_CMP, IT_TEST, IT_BSF,
+    IT_CMP, IT_TEST, IT_BSF, IT_BSR,
     IT_SHL, IT_SHR, IT_SAR,
 
     IT_CALL, IT_RET, IT_JMP, IT_JMPI,
