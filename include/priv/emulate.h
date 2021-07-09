@@ -66,6 +66,8 @@ CBB* getCaptureBB(RContext* c, uint64_t f, int esID);
 int pushCaptureBB(RContext *c, CBB* bb);
 CBB* popCaptureBB(Rewriter* r);
 Instr* newCapInstr(RContext *c);
+Instr* peekCapInstr(RContext* c, int offset);
+Instr* insertCapInstr(RContext* c, int offset);
 void capture(RContext* c, Instr* instr);
 void captureRet(RContext* c, Instr* orig, EmuState* es);
 

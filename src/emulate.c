@@ -700,9 +700,70 @@ Instr* newCapInstr(RContext* c)
     return instr;
 }
 
-// capture a new instruction
-void capture(RContext* c, Instr* instr)
+Instr* insertCapInstr(RContext* c, int offset)
 {
+    Rewriter* r = c->r;
+    Instr* i = newCapInstr(c);
+    if (c->e) return 0;
+
+    assert(offset >= 0);
+
+    i = r->capInstr + (r->capInstrCount - (offset + 1));
+    memmove(i + 1, i, sizeof(Instr) * offset);
+    return i;
+}
+
+Instr* peekCapInstr(RContext* c, int offset)
+{
+    Rewriter* r = c->r;
+    CBB* cbb = c->r->capBB;
+
+    assert(offset >= 0);
+
+    if (offset > cbb->count) {
+        return 0;
+    }
+
+    return r->capInstr + (r->capInstrCount - offset);
+}
+
+static
+RegIndex getUnusedReg(RContext* c, Operand* otherOp, bool* inUse)
+{
+    // Which register to use as temporary. Must be one which isn't used in
+    // the operation. Try to find a dead register to avoid having to save
+    // it's, otherwise, find register that isn't used in the operation
+    // starting from r15
+    RegIndex tmpReg = RI_GPMax;
+    for (int i = RI_GPMax - 1; i > 0; i--) {
+        if (c->r->es->reg_state[i].cState == CS_DEAD) {
+            tmpReg = i;
+            break;
+        }
+    }
+    for (unsigned i = RI_GPMax - 1; (!tmpReg) && i > 0; i--) {
+        if (opIsReg(otherOp)) {
+            if (i != otherOp->reg.ri) {
+                tmpReg = i;
+                *inUse = true;
+                break;
+            }
+        } else {
+            tmpReg = i;
+            *inUse = true;
+            break;
+        }
+    }
+
+    return tmpReg;
+}
+
+// capture a new instruction
+static
+void captureToOffset(RContext* c, Instr* instr, int offset)
+{
+    assert(offset >= 0);
+
     Instr* newInstr;
     Rewriter* r = c->r;
     CBB* cbb = r->currentCapBB;
@@ -710,16 +771,28 @@ void capture(RContext* c, Instr* instr)
 
     if (r->showEmuSteps)
         printf("Capture '%s' (into %s + %d)\n",
-               instr2string(instr, 0, cbb->fc), cbb_prettyName(cbb), cbb->count);
+               instr2string(instr, 0, cbb->fc), cbb_prettyName(cbb), cbb->count - offset);
 
-    newInstr = newCapInstr(c);
-    if (c->e) return;
-    if (cbb->instr == 0) {
-        cbb->instr = newInstr;
-        assert(cbb->count == 0);
+    if (offset == 0) {
+        newInstr = newCapInstr(c);
+        if (c->e) return;
+        // Set up new CBB to point to first captured instruction
+        if (cbb->instr == 0) {
+            cbb->instr = newInstr;
+            assert(cbb->count == 0);
+        }
+    } else {
+        newInstr = insertCapInstr(c, offset);
+        if (c->e) return;
     }
     copyInstr(newInstr, instr);
     cbb->count++;
+}
+
+
+void capture(RContext* c, Instr* instr)
+{
+    captureToOffset(c, instr, 0);
 }
 
 // clone a decoded BB as a CBB
@@ -1137,6 +1210,7 @@ void setMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
                  int shouldBeStack)
 {
     EmuValue off;
+    uint8_t*  a8;
     uint16_t* a16;
     uint32_t* a32;
     uint64_t* a64;
@@ -1152,6 +1226,11 @@ void setMemValue(EmuValue* v, EmuValue* addr, EmuState* es, ValType t,
     assert(!shouldBeStack);
 
     switch(t) {
+    case VT_8:
+        a8 = (uint8_t*) addr->val;
+        *a8 = (uint8_t) v->val;
+        break;
+
     case VT_16:
         a16 = (uint16_t*) addr->val;
         *a16 = (uint16_t) v->val;
@@ -1273,6 +1352,7 @@ void getOpValue(RContext* c, EmuValue* v, Operand* o)
         return;
 
     case OT_Ind8:
+    case OT_Ind16:
     case OT_Ind32:
     case OT_Ind64:
         if (o->seg != OSO_None) {
@@ -1352,6 +1432,8 @@ void setOpValue(EmuValue* v, EmuState* es, Operand* o)
         es->reg[o->reg.ri] = v->val;
         return;
 
+    case OT_Ind8:
+    case OT_Ind16:
     case OT_Ind32:
     case OT_Ind64:
         getOpAddr(&addr, es, o);
@@ -1935,6 +2017,84 @@ void emulateRet(RContext* c, Instr* instr)
         // return to address
         c->exit = es->ret_stack[es->depth];
     }
+}
+
+static
+void emulateSETcc(RContext* c,
+                   EmuState* es,
+                   Instr* instr,
+                   bool cond,
+                   MetaState* s1,
+                   MetaState* s2,
+                   MetaState* s3)
+{
+    CaptureState cs;
+    MetaState ms;
+    EmuValue ev;
+
+    assert(cond == 0 || cond == 1);
+    assert(s1);
+
+    // The result value of a SET instruction depends only on flags
+    cs = s1->cState;
+    if (s2) {
+        assert(s1);
+        cs = combineState4Flags(cs, s2->cState);
+    }
+    if (s3) {
+        assert(s1 && s2);
+        cs = combineState4Flags(cs, s3->cState);
+    }
+
+    initMetaState(&ms, cs);
+    ev = emuValue(cond, VT_8, ms);
+    // FIXME: We should only modify the 8 least significant bits of a
+    // register. Is this happening how?
+    setOpValue(&ev, es, &(instr->dst));
+    setOpState(ms, es, &(instr->dst));
+
+    if (! msIsStatic(ms)) {
+        // The SETcc instruction only sets the 8 least significant bits of its
+        // target register, therefore we need to load the register if it's value
+        // is static
+
+        if (opIsReg(&instr->dst)) {
+            Operand dst;
+            Operand* src;
+            Instr i;
+            Instr pushf;
+            Instr popf;
+            Instr* peeked;
+            EmuValue opval;
+            assert(instr->dst.type == OT_Reg8 &&
+                   (instr->dst.reg.rt == RT_GP8 ||
+                    instr->dst.reg.rt == RT_GP8Leg));
+
+            copyOperand(&dst, &instr->dst);
+            dst.type = OT_Reg64;
+            dst.reg.rt = RT_GP64;
+            getRegValue(&opval, es, dst.reg, VT_64);
+            src = getImmOp(VT_64, opval.val);
+            initBinaryInstr(&i, IT_MOV, VT_None, &dst, src);
+            // Check if previous captured operation is a compare
+            // FIXME: Why do we need this. cmp xxx, xxx; mov rax, 0x0, sete al
+            //        should work since mov doesn't modify flags?
+            peeked = peekCapInstr(c, 1);
+            if (peeked && peeked->type == IT_CMP) {
+                // Handle case where setcc instruction is immediately preceded
+                // by cmp. Then load register used in setcc right before cmp.
+                captureToOffset(c, &i, 1);
+            } else {
+                initSimpleInstr(&pushf, IT_PUSHF);
+                initSimpleInstr(&popf, IT_POPF);
+                capture(c, &pushf);
+                capture(c, &i);
+                capture(c, &popf);
+            }
+        }
+        capture(c, instr);
+    }
+
 }
 
 // process an instruction
@@ -2677,7 +2837,72 @@ void processInstr(RContext* c, Instr* instr)
     case IT_RET:
         emulateRet(c, instr);
         break;
-
+    case IT_SETA:
+        // TODO: Change to use the bitmask for determining state dependency flags
+        emulateSETcc(c, es, instr, !es->flag[FT_Carry] && !es->flag[FT_Zero],
+                     &es->flag_state[FT_Carry], &es->flag_state[FT_Zero], 0);
+        break;
+    case IT_SETAE:
+        emulateSETcc(c, es, instr, !es->flag[FT_Carry], &es->flag_state[FT_Carry], 0, 0);
+        break;
+    case IT_SETB:
+        emulateSETcc(c, es, instr, es->flag[FT_Carry], &es->flag_state[FT_Carry], 0, 0);
+        break;
+    case IT_SETBE:
+        emulateSETcc(c, es, instr, es->flag[FT_Carry] && es->flag[FT_Zero],
+                     &es->flag_state[FT_Carry], &es->flag_state[FT_Zero], 0);
+    case IT_SETE:
+        emulateSETcc(c, es, instr, es->flag[FT_Zero],
+                     &es->flag_state[FT_Zero], 0, 0);
+        break;
+    case IT_SETG:
+        emulateSETcc(c, es, instr,
+                     !es->flag[FT_Zero] && es->flag[FT_Sign] == es->flag[FT_Overflow],
+                     &(es->flag_state[FT_Zero]), &(es->flag_state[FT_Sign]),
+                     &(es->flag_state[FT_Overflow]));
+        break;
+    case IT_SETGE:
+        emulateSETcc(c, es, instr, es->flag[FT_Sign] == es->flag[FT_Overflow],
+                     &es->flag_state[FT_Sign], &es->flag_state[FT_Overflow], 0);
+        break;
+    case IT_SETL:
+        emulateSETcc(c, es, instr, es->flag[FT_Sign] != es->flag[FT_Overflow],
+                     &es->flag_state[FT_Sign], &es->flag_state[FT_Overflow], 0);
+        break;
+    case IT_SETLE:
+        emulateSETcc(c, es, instr, (es->flag[FT_Zero] &&
+                                    es->flag[FT_Sign] == es->flag[FT_Overflow]),
+                     &es->flag_state[FT_Zero], &es->flag_state[FT_Sign],
+                     &es->flag_state[FT_Overflow]);
+        break;
+    case IT_SETNE:
+        emulateSETcc(c, es, instr, !es->flag[FT_Zero],
+                     &es->flag_state[FT_Zero], 0, 0);
+        break;
+    case IT_SETNO:
+        emulateSETcc(c, es, instr, !es->flag[FT_Overflow],
+                     &es->flag_state[FT_Overflow], 0, 0);
+        break;
+    case IT_SETNP:
+        emulateSETcc(c, es, instr, !es->flag[FT_Parity],
+                     &es->flag_state[FT_Parity], 0, 0);
+        break;
+    case IT_SETNS:
+        emulateSETcc(c, es, instr, !es->flag[FT_Sign],
+                     &es->flag_state[FT_Sign], 0, 0);
+        break;
+    case IT_SETO:
+        emulateSETcc(c, es, instr, es->flag[FT_Overflow],
+                     &es->flag_state[FT_Overflow], 0, 0);
+        break;
+    case IT_SETP:
+        emulateSETcc(c, es, instr, es->flag[FT_Parity],
+                     &es->flag_state[FT_Parity], 0, 0);
+        break;
+    case IT_SETS:
+        emulateSETcc(c, es, instr, es->flag[FT_Sign],
+                     &es->flag_state[FT_Sign], 0, 0);
+        break;
     case IT_SHL:
     case IT_SHR:
     case IT_SAR:

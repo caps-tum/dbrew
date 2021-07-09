@@ -1,0 +1,34 @@
+BB f1 (33 instructions):
+                  f1:  0f 97 c0              seta    %al
+                f1+3:  0f 93 c0              setae   %al
+                f1+6:  0f 92 c0              setb    %al
+                f1+9:  0f 96 c0              setbe   %al
+               f1+12:  0f 94 c0              sete    %al
+               f1+15:  0f 9f c0              setg    %al
+               f1+18:  0f 9d c0              setge   %al
+               f1+21:  0f 9c c0              setl    %al
+               f1+24:  0f 9e c0              setle   %al
+               f1+27:  0f 95 c0              setne   %al
+               f1+30:  0f 91 c0              setno   %al
+               f1+33:  0f 9b c0              setnp   %al
+               f1+36:  0f 99 c0              setns   %al
+               f1+39:  0f 90 c0              seto    %al
+               f1+42:  0f 9a c0              setp    %al
+               f1+45:  0f 98 c0              sets    %al
+               f1+48:  0f 97 00              setab   (%rax)
+               f1+51:  0f 93 00              setaeb  (%rax)
+               f1+54:  0f 92 00              setbb   (%rax)
+               f1+57:  0f 96 00              setbeb  (%rax)
+               f1+60:  0f 94 00              seteb   (%rax)
+               f1+63:  0f 9f 00              setgb   (%rax)
+               f1+66:  0f 9d 00              setgeb  (%rax)
+               f1+69:  0f 9c 00              setlb   (%rax)
+               f1+72:  0f 9e 00              setleb  (%rax)
+               f1+75:  0f 95 00              setneb  (%rax)
+               f1+78:  0f 91 00              setnob  (%rax)
+               f1+81:  0f 9b 00              setnpb  (%rax)
+               f1+84:  0f 99 00              setnsb  (%rax)
+               f1+87:  0f 90 00              setob   (%rax)
+               f1+90:  0f 9a 00              setpb   (%rax)
+               f1+93:  0f 98 00              setsb   (%rax)
+               f1+96:  c3                    ret    

@@ -614,6 +614,14 @@ int genPush(GContext* cxt)
 }
 
 static
+int genPushf(GContext* cxt)
+{
+    uint8_t* buf = cxt->buf;
+    buf[0] = 0x9c;
+    return 1;
+}
+
+static
 int genPop(GContext* cxt)
 {
     uint8_t* buf = cxt->buf;
@@ -628,6 +636,14 @@ int genPop(GContext* cxt)
         return 2;
     }
     buf[0] = 0x58 + r;
+    return 1;
+}
+
+static
+int genPopf(GContext* cxt)
+{
+    uint8_t* buf = cxt->buf;
+    buf[0] = 0x9d;
     return 1;
 }
 
@@ -1730,6 +1746,33 @@ int genVec(GContext* c)
     return genInstr(c);
 }
 
+static
+int genSETcc(GContext* c)
+{
+    int opc;
+    switch (c->instr->type) {
+    case IT_SETA:  opc = 0x97; break;
+    case IT_SETAE: opc = 0x93; break;
+    case IT_SETB:  opc = 0x92; break;
+    case IT_SETBE: opc = 0x96; break;
+    case IT_SETE:  opc = 0x94; break;
+    case IT_SETG:  opc = 0x9F; break;
+    case IT_SETGE: opc = 0x9D; break;
+    case IT_SETL:  opc = 0x9C; break;
+    case IT_SETLE: opc = 0x9E; break;
+    case IT_SETNE: opc = 0x95; break;
+    case IT_SETNO: opc = 0x91; break;
+    case IT_SETNP: opc = 0x9B; break;
+    case IT_SETNS: opc = 0x99; break;
+    case IT_SETO:  opc = 0x90; break;
+    case IT_SETP:  opc = 0x9A; break;
+    case IT_SETS:  opc = 0x98; break;
+    default: assert(0);
+    }
+    opc = 0x0F00 | opc;
+    return genDigitRM(c, opc, 0, &(c->instr->dst), 0);
+}
+
 // Pass-through: parser forwarding opcodes, provides encoding
 static
 int genPassThrough(GContext* cxt)
@@ -1910,11 +1953,35 @@ GenerateError* generate(Rewriter* r, CBB* cbb)
             case IT_POP:
                 used = genPop(&cxt);
                 break;
+            case IT_POPF:
+                used = genPopf(&cxt);
+                break;
             case IT_PUSH:
                 used = genPush(&cxt);
                 break;
+            case IT_PUSHF:
+                used = genPushf(&cxt);
+                break;
             case IT_RET:
                 used = genRet(&cxt);
+                break;
+            case IT_SETA:
+            case IT_SETAE:
+            case IT_SETB:
+            case IT_SETBE:
+            case IT_SETE:
+            case IT_SETG:
+            case IT_SETGE:
+            case IT_SETL:
+            case IT_SETLE:
+            case IT_SETNE:
+            case IT_SETNO:
+            case IT_SETNP:
+            case IT_SETNS:
+            case IT_SETO:
+            case IT_SETP:
+            case IT_SETS:
+                used = genSETcc(&cxt);
                 break;
             case IT_SUB:
                 used = genSub(&cxt);

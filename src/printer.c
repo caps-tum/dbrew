@@ -464,10 +464,10 @@ const char* instrName(InstrType it, int* pOpCount)
     case IT_JG:      n = "jg";      opCount = 1; break;
     case IT_SETO:    n = "seto";    opCount = 1; break;
     case IT_SETNO:   n = "setno";   opCount = 1; break;
-    case IT_SETC:    n = "setb";    opCount = 1; break;
-    case IT_SETNC:   n = "setae";   opCount = 1; break;
-    case IT_SETZ:    n = "sete";    opCount = 1; break;
-    case IT_SETNZ:   n = "setne";   opCount = 1; break;
+    case IT_SETB:    n = "setb";    opCount = 1; break;
+    case IT_SETAE:   n = "setae";   opCount = 1; break;
+    case IT_SETE:    n = "sete";    opCount = 1; break;
+    case IT_SETNE:   n = "setne";   opCount = 1; break;
     case IT_SETBE:   n = "setbe";   opCount = 1; break;
     case IT_SETA:    n = "seta";    opCount = 1; break;
     case IT_SETS:    n = "sets";    opCount = 1; break;

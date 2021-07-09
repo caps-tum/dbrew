@@ -1,0 +1,34 @@
+BB f1gen (33 instructions):
+               f1gen:  0f 97 c0              seta    %al
+             f1gen+3:  0f 93 c0              setae   %al
+             f1gen+6:  0f 92 c0              setb    %al
+             f1gen+9:  0f 96 c0              setbe   %al
+            f1gen+12:  0f 94 c0              sete    %al
+            f1gen+15:  0f 9f c0              setg    %al
+            f1gen+18:  0f 9d c0              setge   %al
+            f1gen+21:  0f 9c c0              setl    %al
+            f1gen+24:  0f 9e c0              setle   %al
+            f1gen+27:  0f 95 c0              setne   %al
+            f1gen+30:  0f 91 c0              setno   %al
+            f1gen+33:  0f 9b c0              setnp   %al
+            f1gen+36:  0f 99 c0              setns   %al
+            f1gen+39:  0f 90 c0              seto    %al
+            f1gen+42:  0f 9a c0              setp    %al
+            f1gen+45:  0f 98 c0              sets    %al
+            f1gen+48:  0f 97 00              setab   (%rax)
+            f1gen+51:  0f 93 00              setaeb  (%rax)
+            f1gen+54:  0f 92 00              setbb   (%rax)
+            f1gen+57:  0f 96 00              setbeb  (%rax)
+            f1gen+60:  0f 94 00              seteb   (%rax)
+            f1gen+63:  0f 9f 00              setgb   (%rax)
+            f1gen+66:  0f 9d 00              setgeb  (%rax)
+            f1gen+69:  0f 9c 00              setlb   (%rax)
+            f1gen+72:  0f 9e 00              setleb  (%rax)
+            f1gen+75:  0f 95 00              setneb  (%rax)
+            f1gen+78:  0f 91 00              setnob  (%rax)
+            f1gen+81:  0f 9b 00              setnpb  (%rax)
+            f1gen+84:  0f 99 00              setnsb  (%rax)
+            f1gen+87:  0f 90 00              setob   (%rax)
+            f1gen+90:  0f 9a 00              setpb   (%rax)
+            f1gen+93:  0f 98 00              setsb   (%rax)
+            f1gen+96:  c3                    ret    

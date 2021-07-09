@@ -808,8 +808,13 @@ void processOpc(OpcInfo* oi, DContext* c)
 // operand processing handlers
 
 // put M of RM encoding in op 1
-//static void parseM1(DContext* c) { parseModRM(c, c->vt, RTS_G, &c->o1, 0, 0); }
+static void parseM1(DContext* c) { parseModRM(c, c->vt, RTS_G, &c->o1, 0, 0); }
 
+// put R of RM encoding in op 1
+static void parseR1(DContext* c)
+{
+    parseModRM(c, c->vt, RTS_G, &c->o2, 0, 0);
+}
 
 // RM encoding for 2 GP registers
 static void parseRM(DContext* c)
@@ -925,6 +930,12 @@ static void parseMI_8se(DContext* c)
 static void addSInstr(DContext* c)
 {
     c->ii = addSimple(c->r, c, c->it, c->vt);
+}
+
+// append unary instruction
+static void addUInstr(DContext* c)
+{
+    c->ii = addUnaryOp(c->r, c, c->it, &c->o1);
 }
 
 // append binary instruction
@@ -2444,6 +2455,24 @@ void initDecodeTables(void)
     setOpcH(0x0F8D, decode0F_80);
     setOpcH(0x0F8E, decode0F_80);
     setOpcH(0x0F8F, decode0F_80);
+
+    // 0x0F91-0F9F setcc r/m8
+    setOpcG(0x0f97, 0, IT_SETA,  VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f93, 0, IT_SETAE, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f92, 0, IT_SETB,  VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f96, 0, IT_SETBE, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f94, 0, IT_SETE,  VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f9F, 0, IT_SETG,  VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f9D, 0, IT_SETGE, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f9C, 0, IT_SETL,  VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f9E, 0, IT_SETLE, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f95, 0, IT_SETNE, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f91, 0, IT_SETNO, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f9B, 0, IT_SETNP, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f99, 0, IT_SETNS, VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f90, 0, IT_SETO,  VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f9A, 0, IT_SETP,  VT_8, parseM1, addUInstr, 0);
+    setOpcG(0x0f98, 0, IT_SETS,  VT_8, parseM1, addUInstr, 0);
 
     // 0x0FAF: imul r,rm16/32/64 (RM), signed mul (d/q)word by r/m
     setOpc(0x0FAF, IT_IMUL, VT_Def, parseRM, addBInstr, 0);
