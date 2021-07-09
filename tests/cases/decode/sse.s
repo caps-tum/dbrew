@@ -55,5 +55,7 @@ f1:
     paddq xmm0, xmm1
     paddq xmm0, [rax]
 
-    ret
+    sfence
+    lfence
 
+    ret

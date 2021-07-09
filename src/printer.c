@@ -437,6 +437,8 @@ const char* instrName(InstrType it, int* pOpCount)
     case IT_CLTQ:    n = "cltq"; break;
     case IT_CWTL:    n = "cwtl"; break;
     case IT_CQTO:    n = "cqto"; break;
+    case IT_SFENCE:  n = "sfence"; break;
+    case IT_LFENCE:  n = "lfence"; break;
     case IT_PUSH:    n = "push";    opCount = 1; break;
     case IT_PUSHF:   n = "pushf";   opCount = 1; break;
     case IT_PUSHFQ:  n = "pushfq";  opCount = 1; break;

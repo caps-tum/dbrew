@@ -1310,6 +1310,32 @@ void decode0F_B7(DContext* c)
 }
 
 static
+void decode0F_AE(DContext* c)
+{
+    // sfence (NP): store fence
+    // lfence (NP): load fence
+    // sfence/lfence are a special case since they treat specific modR/M byte
+    // values as part of the opcode.
+    Instr* i;
+    uint8_t modrm = c->f[c->off++];
+    uint8_t b3 = modrm & 0xf8;
+    switch (b3) {
+    // Ignores r/m field of modrm so any value F8-FF encodes sfence...
+    case 0xf8:
+        i = addSimple(c->r, c, IT_SFENCE, VT_None);
+        break;
+    // ...while any value E8-F8 encodes lfence
+    case 0xe8:
+        i = addSimple(c->r, c, IT_LFENCE, VT_None);
+        break;
+    default:
+        markDecodeError(c, false, ET_BadOpcode);
+        return;
+    }
+    attachPassthrough(i, VEX_No, PS_No, OE_None, SC_None, 0x0F, 0xAE, b3);
+}
+
+static
 void decode0F_BE(DContext* c)
 {
     // movsx r16/32/64,r/m8 (RM): byte to (q/d)word with sign-extension
@@ -2444,6 +2470,10 @@ void initDecodeTables(void)
     setOpcH(0x0F8D, decode0F_80);
     setOpcH(0x0F8E, decode0F_80);
     setOpcH(0x0F8F, decode0F_80);
+
+    // 0x0FAEE8: lfence
+    // 0x0FAED8: sfence
+    setOpcH(0x0FAE, decode0F_AE);
 
     // 0x0FAF: imul r,rm16/32/64 (RM), signed mul (d/q)word by r/m
     setOpc(0x0FAF, IT_IMUL, VT_Def, parseRM, addBInstr, 0);
