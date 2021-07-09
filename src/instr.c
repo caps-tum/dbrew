@@ -352,6 +352,18 @@ OpType getImmOpType(ValType t)
     assert(0);
 }
 
+OpType getIndOpType(ValType t)
+{
+    switch(t) {
+    case VT_8:  return OT_Ind8;
+    case VT_16: return OT_Ind16;
+    case VT_32: return OT_Ind32;
+    case VT_64: return OT_Ind64;
+    default: break;
+    }
+    assert(0);
+}
+
 OpType getGPRegOpType(ValType t)
 {
     switch(t) {

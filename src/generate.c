@@ -799,6 +799,27 @@ int genMov(GContext* cxt)
     return 0;
 }
 
+static
+int genMovs(GContext* cxt)
+{
+    Instr* i = cxt->instr;
+    PrefixSet ps = 0;
+
+    ValType vt = i->vtype;
+
+    int opc = vt == VT_8 ? 0xa4 : 0xa5;
+
+    if (vt == VT_64) ps |= PS_REXW;
+    if (vt == VT_16) ps |= PS_66;
+    if (i->type == IT_REP_MOVS) ps |= PS_F3;
+
+    cxt->ps = ps;
+
+    int o = genPrefix(cxt);
+    cxt->buf[o++] = opc;
+
+    return o;
+}
 
 static
 int genCMov(GContext* cxt)
@@ -1915,6 +1936,10 @@ GenerateError* generate(Rewriter* r, CBB* cbb)
                 break;
             case IT_RET:
                 used = genRet(&cxt);
+                break;
+            case IT_REP_MOVS:
+            case IT_MOVS:
+                used = genMovs(&cxt);
                 break;
             case IT_SUB:
                 used = genSub(&cxt);

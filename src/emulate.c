@@ -1683,6 +1683,50 @@ void captureTest(RContext* c, Instr* orig, EmuState* es, CaptureState cs)
     capture(c, &i);
 }
 
+static
+void captureMovs(RContext* c, Instr* orig, EmuState* es)
+{
+    // Attempting to emulate the movs and rep movs instructions is probably
+    // pointless given how these instructions are mostly used, so instead, we
+    // resurrect the registers that the instruction depends on (rcx, rdi, rsi)
+    // and capture it.
+
+    EmuValue opval;
+    Reg reg;
+    Instr i;
+    Operand* op1;
+    Operand* op2;
+    EmuValue v;
+
+    reg = getReg(RT_GP64, RI_C);
+    getRegValue(&v, es, reg, VT_64);
+    if (msIsStatic(v.state)) {
+        op1 = getRegOp(reg);
+        op2 = getImmOp(VT_64, v.val);
+        initBinaryInstr(&i, IT_MOV, VT_64, op1, op2);
+        capture(c, &i);
+    }
+    reg = getReg(RT_GP64, RI_DI);
+    getRegValue(&v, es, reg, VT_64);
+    if (msIsStatic(v.state)) {
+        op1 = getRegOp(reg);
+        op2 = getImmOp(VT_64, v.val);
+        initBinaryInstr(&i, IT_MOV, VT_64, op1, op2);
+        capture(c, &i);
+    }
+
+    reg = getReg(RT_GP64, RI_SI);
+    getRegValue(&v, es, reg, VT_64);
+    if (msIsStatic(v.state)) {
+        op1 = getRegOp(reg);
+        op2 = getImmOp(VT_64, v.val);
+        initBinaryInstr(&i, IT_MOV, VT_64, op1, op2);
+        capture(c, &i);
+    }
+
+    capture(c, orig);
+}
+
 void captureRet(RContext* c, Instr* orig, EmuState* es)
 {
     EmuValue v;
@@ -2674,6 +2718,10 @@ void processInstr(RContext* c, Instr* instr)
         }
         break;
 
+    case IT_REP_MOVS:
+    case IT_MOVS:
+        captureMovs(c, instr, es);
+        break;
     case IT_RET:
         emulateRet(c, instr);
         break;
