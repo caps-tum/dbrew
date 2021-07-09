@@ -1,4 +1,4 @@
-BB f1gen (49 instructions):
+BB f1gen (53 instructions):
                f1gen:  66 48 0f 7e c0        movq    %xmm0,%rax
              f1gen+5:  66 48 0f 7e fe        movq    %xmm7,%rsi
             f1gen+10:  66 4c 0f 7e f8        movq    %xmm15,%rax
@@ -47,4 +47,8 @@ BB f1gen (49 instructions):
            f1gen+180:  0f 15 07              unpckhps (%rdi),%xmm0
            f1gen+183:  66 0f d4 c1           paddq   %xmm1,%xmm0
            f1gen+187:  66 0f d4 00           paddq   (%rax),%xmm0
-           f1gen+191:  c3                    ret    
+           f1gen+191:  0f 18 08              prefetcht0 (%rax)
+           f1gen+194:  0f 18 10              prefetcht1 (%rax)
+           f1gen+197:  0f 18 18              prefetcht2 (%rax)
+           f1gen+200:  0f 18 00              prefetchnta (%rax)
+           f1gen+203:  c3                    ret    

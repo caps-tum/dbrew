@@ -55,5 +55,10 @@ f1:
     paddq xmm0, xmm1
     paddq xmm0, [rax]
 
-    ret
+    prefetcht0 [rax]
+    prefetcht1 [rax]
+    prefetcht2 [rax]
+    prefetchnta [rax]
 
+
+    ret

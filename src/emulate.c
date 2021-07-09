@@ -1792,6 +1792,15 @@ void capturePassThrough(RContext* c, Instr* orig, EmuState* es)
     case OE_None:
         break;
 
+    case OE_M:
+        assert(opIsInd(&(orig->dst)));
+
+        i.form = OF_1;
+        copyOperand(&(i.dst), &(orig->dst));
+        i.digit = orig->digit;
+        applyStaticToInd((&i.dst), es);
+        break;
+
     case OE_MR:
         assert(opIsReg(&(orig->dst)) || opIsInd(&(orig->dst)));
         assert(opIsReg(&(orig->src)));

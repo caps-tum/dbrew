@@ -1072,6 +1072,35 @@ void decode0F_17(DContext* c)
 }
 
 static
+void decode0F_18(DContext *c)
+{
+    int digit;
+    parseModRM(c, c->vt, RTS_G, &c->o1, &c->o2, &digit);
+    switch (digit) {
+    case 0:
+        c->it = IT_PREFETCHNTA;
+        break;
+    case 1:
+        c->it = IT_PREFETCHT0;
+        break;
+    case 2:
+        c->it = IT_PREFETCHT1;
+        break;
+    case 3:
+        c->it = IT_PREFETCHT2;
+        break;
+    default:
+        markDecodeError(c, true, ET_BadOperands);
+        return;
+    }
+
+    c->ii = addUnaryOp(c->r, c, c->it, &c->o1);
+    c->ii->vtype = VT_Implicit;
+    c->ii->digit = digit;
+    attachPassthrough(c->ii, VEX_No, c->ps, OE_M, SC_None, 0x0F, 0x18, -1);
+}
+
+static
 void decode0F_1F(DContext* c)
 {
     parseModRM(c, c->vt, RTS_G, &c->o1, 0, &c->digit);
@@ -2206,6 +2235,12 @@ void initDecodeTables(void)
     setOpcH(0x0F16, decode0F_16);
     setOpcH(0x0F17, decode0F_17);
     setOpcH(0x0F1F, decode0F_1F);
+
+    // 0xOF18/1: prefetcht0 m8 (M)
+    // 0xOF18/2: prefetcht1 m8 (M)
+    // 0xOF18/3: prefetcht2 m8 (M)
+    // 0xOF18/0: prefetchnta m8 (M)
+    setOpcH(0x0F18, decode0F_18);
 
     setOpcH(0x0F28, decode0F_28);
 

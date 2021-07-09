@@ -573,6 +573,7 @@ void copyInstr(Instr* dst, Instr* src)
     dst->type  = src->type;
     dst->vtype = src->vtype;
     dst->form  = src->form;
+    dst->digit = src->digit;
 
     dst->dst.type = OT_None;
     dst->src.type = OT_None;

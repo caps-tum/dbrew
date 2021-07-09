@@ -1753,6 +1753,9 @@ int genPassThrough(GContext* cxt)
         cxt->opc = opc;
         o = genPrefix(cxt);
         o = appendOO(cxt, o);
+
+    case OE_M:
+        o += genDigitRM(cxt, opc, instr->digit, &(instr->dst), 0);
         break;
 
     case OE_MR:

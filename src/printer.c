@@ -575,6 +575,10 @@ const char* instrName(InstrType it, int* pOpCount)
     case IT_PCMPEQD: n = "pcmpeqd"; opCount = 2; break;
     case IT_PMINUB:  n = "pminub";  opCount = 2; break;
     case IT_PMOVMSKB:n = "pmovmskb";opCount = 2; break;
+    case IT_PREFETCHT0: n = "prefetcht0"; opCount = 1; break;
+    case IT_PREFETCHT1: n = "prefetcht1"; opCount = 1; break;
+    case IT_PREFETCHT2: n = "prefetcht2"; opCount = 1; break;
+    case IT_PREFETCHNTA: n = "prefetchnta"; opCount = 1; break;
     case IT_UNPCKLPD: n = "unpcklpd"; opCount = 2; break;
     case IT_UNPCKLPS: n = "unpcklps"; opCount = 2; break;
     case IT_UNPCKHPD: n = "unpckhpd"; opCount = 2; break;

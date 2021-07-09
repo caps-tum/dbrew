@@ -1,4 +1,4 @@
-BB f1 (49 instructions):
+BB f1 (53 instructions):
                   f1:  66 48 0f 7e c0        movq    %xmm0,%rax
                 f1+5:  66 48 0f 7e fe        movq    %xmm7,%rsi
                f1+10:  66 4c 0f 7e f8        movq    %xmm15,%rax
@@ -47,4 +47,8 @@ BB f1 (49 instructions):
               f1+180:  0f 15 07              unpckhps (%rdi),%xmm0
               f1+183:  66 0f d4 c1           paddq   %xmm1,%xmm0
               f1+187:  66 0f d4 00           paddq   (%rax),%xmm0
-              f1+191:  c3                    ret    
+              f1+191:  0f 18 08              prefetcht0 (%rax)
+              f1+194:  0f 18 10              prefetcht1 (%rax)
+              f1+197:  0f 18 18              prefetcht2 (%rax)
+              f1+200:  0f 18 00              prefetchnta (%rax)
+              f1+203:  c3                    ret    

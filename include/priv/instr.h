@@ -172,6 +172,9 @@ typedef enum _InstrType {
     IT_PCMPEQB, IT_PCMPEQW, IT_PCMPEQD,
     IT_PMINUB, IT_PMOVMSKB, IT_PXOR, IT_PADDQ,
 
+    // Prefetch instructions
+    IT_PREFETCHNTA, IT_PREFETCHT0, IT_PREFETCHT1, IT_PREFETCHT2,
+
     // AVX
     IT_VMOVSS, IT_VMOVSD, IT_VMOVUPS, IT_VMOVUPD, IT_VMOVAPS, IT_VMOVAPD, IT_VMOVDQU,
     IT_VMOVDQA, IT_VMOVNTDQ,
@@ -230,6 +233,7 @@ typedef struct _Operand {
 typedef enum _OperandEncoding {
     OE_Invalid = 0,
     OE_None,
+    OE_M,   // 1 operand,  ModRM byte, dest is memory
     OE_MR,  // 2 operands, ModRM byte, dest is reg or memory
     OE_RM,  // 2 operands, ModRM byte, src  is reg or memory
     OE_RMI, // 3 operands, ModRM byte, src  is reg or memory, Immediate
@@ -267,6 +271,7 @@ struct _Instr {
     ValType vtype; // without explicit operands or all operands of same type
     Operand dst, src; //  with binary op: dst = dst op src
     Operand src2; // with ternary op: dst = src op src2
+    int digit; // Instructions with single operand and a digit
 
     // if instruction was decoded
     uint64_t addr;
